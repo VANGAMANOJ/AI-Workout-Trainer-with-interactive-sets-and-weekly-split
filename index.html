@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>APEX — AI Workout Trainer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ░░ LOADER ░░ -->
+  <div id="loader" class="loader">
+    <div class="loader-inner">
+      <div class="loader-logo">APEX</div>
+      <div class="loader-bar"><div class="loader-fill"></div></div>
+    </div>
+  </div>
+
+  <!-- ░░ HEADER ░░ -->
+  <header class="site-header" id="siteHeader">
+    <div class="header-left">
+      <span class="logo-mark">▲</span>
+      <span class="logo-text">APEX</span>
+      <span class="logo-sub">AI TRAINER</span>
+    </div>
+    <nav class="header-nav">
+      <button class="nav-btn active" data-section="dashboard">Dashboard</button>
+      <button class="nav-btn" data-section="workout">Workout</button>
+      <button class="nav-btn" data-section="camera">Camera</button>
+    </nav>
+    <div class="header-right">
+      <button class="theme-toggle" id="themeToggle" title="Toggle theme">
+        <span class="theme-icon sun">☀</span>
+        <span class="theme-icon moon">☽</span>
+        <div class="toggle-thumb"></div>
+      </button>
+      <button class="profile-btn" id="profileBtn">
+        <span class="avatar-ring" id="avatarRing">A</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ░░ MAIN CONTENT ░░ -->
+  <main class="main-content">
+
+    <!-- ═══════════════════════════════════
+         SECTION: DASHBOARD
+    ═══════════════════════════════════ -->
+    <section class="section active" id="section-dashboard">
+
+      <!-- PROFILE BANNER -->
+      <div class="profile-banner" id="profileBanner">
+        <div class="banner-grid">
+          <div class="banner-text">
+            <p class="banner-greeting" id="bannerGreeting">Welcome back</p>
+            <h1 class="banner-name" id="bannerName">ATHLETE</h1>
+            <p class="banner-tagline" id="bannerTagline">Ready to dominate today?</p>
+          </div>
+          <div class="banner-stats" id="bannerStats">
+            <div class="stat-chip">
+              <span class="stat-val" id="statAge">—</span>
+              <span class="stat-lbl">Age</span>
+            </div>
+            <div class="stat-chip">
+              <span class="stat-val" id="statWeight">—</span>
+              <span class="stat-lbl">Weight</span>
+            </div>
+            <div class="stat-chip">
+              <span class="stat-val" id="statGoal">—</span>
+              <span class="stat-lbl">Goal</span>
+            </div>
+          </div>
+        </div>
+        <div class="banner-actions">
+          <button class="btn btn-ghost btn-sm" id="editProfileBtn">✎ Edit Profile</button>
+        </div>
+      </div>
+
+      <!-- PROFILE FORM (hidden until edit) -->
+      <div class="card profile-form-card hidden" id="profileFormCard">
+        <h2 class="card-title">Your Profile</h2>
+        <p class="card-subtitle">No account needed — saved locally on your device</p>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Full Name</label>
+            <input type="text" id="inputName" class="form-input" placeholder="e.g. Alex Mercer" maxlength="40" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Age</label>
+            <input type="number" id="inputAge" class="form-input" placeholder="25" min="10" max="99" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Weight (kg)</label>
+            <input type="number" id="inputWeight" class="form-input" placeholder="75" min="30" max="250" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Primary Goal</label>
+            <select id="inputGoal" class="form-select">
+              <option value="">Select your goal</option>
+              <option value="Muscle Gain">💪 Muscle Gain</option>
+              <option value="Fat Loss">🔥 Fat Loss</option>
+              <option value="Strength">⚡ Strength</option>
+              <option value="Endurance">🏃 Endurance</option>
+              <option value="General Fitness">✦ General Fitness</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-ghost" id="cancelProfileBtn">Cancel</button>
+          <button class="btn btn-primary" id="saveProfileBtn">Save Profile →</button>
+        </div>
+      </div>
+
+      <!-- WEEK OVERVIEW CARDS -->
+      <div class="week-header">
+        <h2 class="section-heading">This Week's Plan</h2>
+        <span class="badge">7 Days</span>
+      </div>
+      <div class="week-grid" id="weekGrid">
+        <!-- Rendered by JS -->
+      </div>
+
+    </section>
+
+    <!-- ═══════════════════════════════════
+         SECTION: WORKOUT GENERATOR
+    ═══════════════════════════════════ -->
+    <section class="section" id="section-workout">
+
+      <div class="workout-header">
+        <div>
+          <h2 class="section-heading">Generate Workout</h2>
+          <p class="section-sub">Customized to your goal and level</p>
+        </div>
+      </div>
+
+      <!-- Generator controls -->
+      <div class="generator-card card">
+        <div class="gen-controls">
+          <div class="form-group">
+            <label class="form-label">Training Goal</label>
+            <select id="genGoal" class="form-select">
+              <option value="Muscle Gain">💪 Muscle Gain</option>
+              <option value="Fat Loss">🔥 Fat Loss</option>
+              <option value="Strength">⚡ Strength</option>
+              <option value="Endurance">🏃 Endurance</option>
+              <option value="General Fitness">✦ General Fitness</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Experience Level</label>
+            <select id="genLevel" class="form-select">
+              <option value="Beginner">🌱 Beginner</option>
+              <option value="Intermediate">🔥 Intermediate</option>
+              <option value="Advanced">⚡ Advanced</option>
+            </select>
+          </div>
+          <button class="btn btn-primary btn-generate" id="generateBtn">
+            <span class="btn-label">Generate Workout</span>
+            <span class="btn-icon">⚡</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Generated plan output -->
+      <div id="workoutOutput" class="workout-output hidden">
+        <div class="output-header">
+          <h3 class="output-title" id="outputTitle">Weekly Workout Plan</h3>
+          <button class="btn btn-accent btn-sm" id="downloadPdfBtn">
+            ⬇ Download PDF
+          </button>
+        </div>
+        <div class="days-container" id="daysContainer">
+          <!-- Day cards rendered by JS -->
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ═══════════════════════════════════
+         SECTION: CAMERA
+    ═══════════════════════════════════ -->
+    <section class="section" id="section-camera">
+      <div class="camera-header">
+        <h2 class="section-heading">Form Check Camera</h2>
+        <p class="section-sub">Use your camera to review your workout form in real-time</p>
+      </div>
+
+      <div class="camera-card card">
+        <div class="camera-viewport" id="cameraViewport">
+          <div class="camera-placeholder" id="cameraPlaceholder">
+            <div class="cam-icon">◉</div>
+            <p class="cam-hint">Camera feed will appear here</p>
+          </div>
+          <video id="cameraVideo" autoplay playsinline muted class="hidden"></video>
+          <div class="camera-overlay hidden" id="cameraOverlay">
+            <span class="rec-dot"></span> LIVE
+          </div>
+        </div>
+
+        <div class="camera-error hidden" id="cameraError">
+          <span class="error-icon">⚠</span>
+          <p id="cameraErrorMsg">Camera access was denied. Please allow camera permissions.</p>
+        </div>
+
+        <div class="camera-controls">
+          <button class="btn btn-primary" id="startCameraBtn">◉ Start Camera</button>
+          <button class="btn btn-danger hidden" id="stopCameraBtn">■ Stop Camera</button>
+        </div>
+
+        <div class="camera-tips">
+          <p class="tips-label">📋 Form Tips</p>
+          <ul class="tips-list">
+            <li>Position yourself 2–3 meters from the camera</li>
+            <li>Ensure your full body is visible in frame</li>
+            <li>Good lighting improves visibility</li>
+            <li>Use a stable surface for your device</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ░░ TOAST ░░ -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- ░░ SCRIPTS ░░ -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="pdf.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
