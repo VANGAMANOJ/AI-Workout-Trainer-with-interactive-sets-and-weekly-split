@@ -364,6 +364,166 @@
   @media (max-width: 400px) {
     .inputs-row { grid-template-columns: 1fr; }
   }
+
+  /* ── CAMERA SECTION ── */
+  #camera-section {
+    margin-top: 56px;
+  }
+  .camera-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--card-radius);
+    padding: 28px 28px 32px;
+    box-shadow: var(--shadow);
+  }
+  .camera-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .camera-header-left {}
+  .camera-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 32px;
+    letter-spacing: 0.04em;
+    line-height: 1;
+    color: var(--text);
+  }
+  .camera-subtitle {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+  .btn-camera {
+    background: transparent;
+    color: var(--accent);
+    border: 1.5px solid var(--accent);
+    border-radius: 10px;
+    padding: 11px 24px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.03em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.18s, color 0.18s, transform 0.15s, box-shadow 0.15s;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .btn-camera:hover {
+    background: var(--accent);
+    color: #0d0f14;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 24px rgba(232,255,71,0.28);
+  }
+  .btn-camera:active { transform: translateY(0); }
+  .btn-camera.stop {
+    border-color: var(--accent2);
+    color: var(--accent2);
+  }
+  .btn-camera.stop:hover {
+    background: var(--accent2);
+    color: #fff;
+    box-shadow: 0 6px 24px rgba(255,107,53,0.28);
+  }
+  .btn-camera .cam-icon { font-size: 16px; }
+
+  /* video wrapper */
+  .video-wrapper {
+    display: none;
+    position: relative;
+    border-radius: 14px;
+    overflow: hidden;
+    background: #000;
+    border: 1px solid var(--border);
+    box-shadow: 0 12px 48px rgba(0,0,0,0.6);
+    animation: fadeUp 0.35s ease both;
+  }
+  .video-wrapper.active { display: block; }
+
+  .video-wrapper video {
+    width: 100%;
+    display: block;
+    max-height: 520px;
+    object-fit: cover;
+  }
+
+  /* live badge */
+  .live-badge {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    background: rgba(13,15,20,0.75);
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 100px;
+    padding: 5px 12px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .live-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: 0.4; transform: scale(0.75); }
+  }
+
+  /* error/status message */
+  .camera-msg {
+    display: none;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,107,53,0.25);
+    background: rgba(255,107,53,0.07);
+    margin-top: 16px;
+    font-size: 13.5px;
+    color: var(--text);
+    animation: fadeUp 0.3s ease both;
+  }
+  .camera-msg.visible { display: flex; }
+  .camera-msg.info {
+    border-color: rgba(232,255,71,0.2);
+    background: rgba(232,255,71,0.06);
+  }
+  .camera-msg-icon { font-size: 20px; flex-shrink: 0; }
+
+  /* tips row */
+  .camera-tips {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+  }
+  .tip-chip {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    padding: 5px 13px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--muted);
+    letter-spacing: 0.03em;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
 </style>
 </head>
 <body>
@@ -408,6 +568,42 @@
   <div id="workout-output">
     <div class="section-label" id="plan-label"></div>
     <div class="days-grid" id="days-grid"></div>
+  </div>
+
+  <!-- CAMERA SECTION -->
+  <div id="camera-section">
+    <div class="camera-panel">
+      <div class="camera-header">
+        <div class="camera-header-left">
+          <div class="camera-title">Start Camera Workout</div>
+          <div class="camera-subtitle">Use your camera to follow along and check your form in real time.</div>
+        </div>
+        <button class="btn-camera" id="cameraBtn" onclick="toggleCamera()">
+          <span class="cam-icon">📷</span>
+          <span id="cameraBtnText">Start Camera</span>
+        </button>
+      </div>
+
+      <!-- Error / status message -->
+      <div class="camera-msg" id="cameraMsg">
+        <span class="camera-msg-icon" id="cameraMsgIcon">⚠️</span>
+        <span id="cameraMsgText"></span>
+      </div>
+
+      <!-- Video feed -->
+      <div class="video-wrapper" id="videoWrapper">
+        <video id="cameraVideo" autoplay playsinline muted></video>
+        <div class="live-badge"><div class="live-dot"></div> Live</div>
+      </div>
+
+      <!-- Tips -->
+      <div class="camera-tips">
+        <div class="tip-chip">💡 Works on HTTPS</div>
+        <div class="tip-chip">📱 Mobile supported</div>
+        <div class="tip-chip">🔒 No data is recorded</div>
+        <div class="tip-chip">🎥 Front or rear camera</div>
+      </div>
+    </div>
   </div>
 
 </div>
@@ -638,6 +834,91 @@
     el.innerHTML = `
       <div class="summary-dot"></div>
       <div class="summary-text"><span>${exCount}</span> exercises · <span>${totalSets}</span> total sets</div>`;
+  }
+
+  // ── CAMERA ────────────────────────────────────────────────────
+  let cameraStream = null;
+
+  function showCameraMsg(text, icon, isInfo) {
+    const msg     = document.getElementById('cameraMsg');
+    const msgText = document.getElementById('cameraMsgText');
+    const msgIcon = document.getElementById('cameraMsgIcon');
+    msgText.textContent = text;
+    msgIcon.textContent = icon;
+    msg.className = 'camera-msg visible' + (isInfo ? ' info' : '');
+  }
+
+  function hideCameraMsg() {
+    document.getElementById('cameraMsg').className = 'camera-msg';
+  }
+
+  async function startCamera() {
+    const btn     = document.getElementById('cameraBtn');
+    const btnText = document.getElementById('cameraBtnText');
+    const wrapper = document.getElementById('videoWrapper');
+    const video   = document.getElementById('cameraVideo');
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      showCameraMsg('Camera API not supported in this browser. Please use a modern browser over HTTPS.', '⚠️', false);
+      return;
+    }
+
+    showCameraMsg('Requesting camera access…', '⏳', true);
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: false,
+      });
+
+      cameraStream = stream;
+      video.srcObject = stream;
+
+      video.onloadedmetadata = () => {
+        hideCameraMsg();
+        wrapper.classList.add('active');
+        wrapper.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      };
+
+      btn.className = 'btn-camera stop';
+      btn.querySelector('.cam-icon').textContent = '⏹';
+      btnText.textContent = 'Stop Camera';
+
+    } catch (err) {
+      let message = 'Camera access denied.';
+      if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        message = 'No camera device found on this device.';
+      } else if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        message = 'Camera access denied. Please allow camera permission in your browser settings and try again.';
+      } else if (err.name === 'NotReadableError') {
+        message = 'Camera is already in use by another application.';
+      }
+      showCameraMsg(message, '🚫', false);
+    }
+  }
+
+  function stopCamera() {
+    const btn     = document.getElementById('cameraBtn');
+    const btnText = document.getElementById('cameraBtnText');
+    const wrapper = document.getElementById('videoWrapper');
+    const video   = document.getElementById('cameraVideo');
+
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(t => t.stop());
+      cameraStream = null;
+    }
+
+    video.srcObject = null;
+    wrapper.classList.remove('active');
+    hideCameraMsg();
+
+    btn.className = 'btn-camera';
+    btn.querySelector('.cam-icon').textContent = '📷';
+    btnText.textContent = 'Start Camera';
+  }
+
+  function toggleCamera() {
+    cameraStream ? stopCamera() : startCamera();
   }
 </script>
 </body>
