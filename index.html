@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Workout Trainer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ══════════════════════════════════════
+       ENTRY SCREEN
+  ══════════════════════════════════════ -->
+  <div id="entryScreen" class="entry-screen">
+    <div class="entry-bg-grid"></div>
+    <div class="entry-orb entry-orb-1"></div>
+    <div class="entry-orb entry-orb-2"></div>
+
+    <div class="entry-content">
+      <div class="entry-logo-wrap">
+        <svg class="entry-hex" width="72" height="72" viewBox="0 0 72 72" fill="none">
+          <path d="M36 4L68 22V50L36 68L4 50V22L36 4Z" stroke="var(--accent)" stroke-width="1.5"/>
+          <path d="M36 14L58 26V50L36 58L14 50V26L36 14Z" fill="var(--accent)" opacity="0.12"/>
+          <path d="M36 24L48 31V45L36 52L24 45V31L36 24Z" fill="var(--accent)" opacity="0.5"/>
+        </svg>
+        <div class="entry-logo-pulse"></div>
+      </div>
+
+      <h1 class="entry-title">
+        <span class="entry-title-ai">AI</span>
+        <span class="entry-title-main">Workout</span>
+        <span class="entry-title-sub">Trainer</span>
+      </h1>
+      <p class="entry-tagline">Real-time coaching. Intelligent form tracking. Built for results.</p>
+
+      <div class="entry-stats">
+        <div class="entry-stat"><span class="es-num">9+</span><span class="es-label">Exercises</span></div>
+        <div class="entry-stat-divider"></div>
+        <div class="entry-stat"><span class="es-num">7</span><span class="es-label">Day Plan</span></div>
+        <div class="entry-stat-divider"></div>
+        <div class="entry-stat"><span class="es-num">AI</span><span class="es-label">Powered</span></div>
+      </div>
+
+      <div class="entry-buttons">
+        <button class="btn-entry-primary" id="btnCreateProfile">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <circle cx="9" cy="6" r="3.5" stroke="currentColor" stroke-width="1.6"/>
+            <path d="M2 16c0-3.3 3.1-6 7-6s7 2.7 7 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+          Create Profile
+        </button>
+        <button class="btn-entry-secondary" id="btnSkip">
+          Continue as Guest
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       PROFILE MODAL
+  ══════════════════════════════════════ -->
+  <div id="profileModal" class="modal-overlay hidden">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2 class="modal-title">Build Your Profile</h2>
+        <button class="modal-close" id="modalClose">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <path d="M4 4l12 12M16 4L4 16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="modal-form-grid">
+          <div class="form-group">
+            <label class="form-label">Full Name</label>
+            <input type="text" id="inp-name" class="form-input" placeholder="e.g. Rahul Sharma" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Age</label>
+            <input type="number" id="inp-age" class="form-input" placeholder="e.g. 24" min="10" max="80" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Weight (kg)</label>
+            <input type="number" id="inp-weight" class="form-input" placeholder="e.g. 72" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Height (cm)</label>
+            <input type="number" id="inp-height" class="form-input" placeholder="e.g. 175" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Fitness Goal</label>
+          <div class="goal-chips" id="goalChips">
+            <button class="goal-chip" data-goal="fat-loss">🔥 Fat Loss</button>
+            <button class="goal-chip" data-goal="muscle-gain">💪 Muscle Gain</button>
+            <button class="goal-chip" data-goal="strength">🏋 Strength</button>
+            <button class="goal-chip" data-goal="endurance">🏃 Endurance</button>
+            <button class="goal-chip" data-goal="full-fitness">🌟 Full Fitness</button>
+            <button class="goal-chip" data-goal="lean">✂ Lean Body</button>
+            <button class="goal-chip" data-goal="beginner">🌱 Beginner</button>
+            <button class="goal-chip" data-goal="athletic">⚡ Athletic</button>
+            <button class="goal-chip" data-goal="home">🏠 Home Workout</button>
+            <button class="goal-chip" data-goal="gym">🏛 Gym Workout</button>
+          </div>
+        </div>
+
+        <button class="btn-modal-save" id="btnSaveProfile">
+          Save & Start Training
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       MAIN APP
+  ══════════════════════════════════════ -->
+  <div id="mainApp" class="main-app hidden">
+
+    <!-- NAVBAR -->
+    <header class="navbar">
+      <div class="nav-brand">
+        <svg width="30" height="30" viewBox="0 0 30 30" fill="none">
+          <path d="M15 2L28 9.5V20.5L15 28L2 20.5V9.5L15 2Z" stroke="var(--accent)" stroke-width="1.4"/>
+          <path d="M15 8L22 12V18L15 22L8 18V12L15 8Z" fill="var(--accent)" opacity="0.6"/>
+        </svg>
+        <span class="brand-name">AI Workout Trainer</span>
+      </div>
+
+      <nav class="nav-links" id="navLinks">
+        <a class="nav-link active" data-page="dashboard" href="#">Dashboard</a>
+        <a class="nav-link" data-page="weekly" href="#">Weekly Plan</a>
+        <a class="nav-link" data-page="profile-page" href="#">Profile</a>
+        <a class="nav-link" data-page="about" href="#">About</a>
+        <a class="nav-link" data-page="team" href="#">Team</a>
+      </nav>
+
+      <div class="nav-right">
+        <span class="nav-welcome" id="navWelcome">Guest</span>
+        <label class="theme-switch" title="Toggle theme">
+          <input type="checkbox" id="themeToggle" />
+          <span class="switch-track">
+            <span class="switch-sun">☀</span>
+            <span class="switch-moon">☽</span>
+            <span class="switch-thumb"></span>
+          </span>
+        </label>
+        <button class="btn-pdf" id="btnPDF">
+          <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+            <path d="M7.5 1v9M4 7l3.5 3.5L11 7M2 13h11" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+          </svg>
+          Export PDF
+        </button>
+        <button class="nav-hamburger" id="navHamburger" aria-label="Menu">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+    </header>
+
+    <!-- ── PAGES ── -->
+    <main class="pages-container">
+
+      <!-- ── DASHBOARD PAGE ── -->
+      <div class="page active" id="page-dashboard">
+        <div class="dashboard-grid">
+
+          <!-- LEFT: Exercise List -->
+          <aside class="dash-panel panel-left">
+            <div class="panel-head">
+              <h3 class="panel-heading">Exercises</h3>
+              <span class="selected-chip" id="selectedChip">None</span>
+            </div>
+            <ul class="exercise-list" id="exerciseList">
+              <li class="ex-item" data-ex="Squat"><span class="ex-ico">🦵</span><span class="ex-nm">Squat</span><span class="ex-tag">Legs</span></li>
+              <li class="ex-item" data-ex="Push-up"><span class="ex-ico">💪</span><span class="ex-nm">Push-up</span><span class="ex-tag">Chest</span></li>
+              <li class="ex-item" data-ex="Bicep Curl"><span class="ex-ico">🏋</span><span class="ex-nm">Bicep Curl</span><span class="ex-tag">Arms</span></li>
+              <li class="ex-item" data-ex="Lunges"><span class="ex-ico">🏃</span><span class="ex-nm">Lunges</span><span class="ex-tag">Legs</span></li>
+              <li class="ex-item" data-ex="Shoulder Press"><span class="ex-ico">🤸</span><span class="ex-nm">Shoulder Press</span><span class="ex-tag">Shoulders</span></li>
+              <li class="ex-item" data-ex="Plank"><span class="ex-ico">🧘</span><span class="ex-nm">Plank</span><span class="ex-tag">Core</span></li>
+              <li class="ex-item" data-ex="Jumping Jacks"><span class="ex-ico">⚡</span><span class="ex-nm">Jumping Jacks</span><span class="ex-tag">Cardio</span></li>
+              <li class="ex-item" data-ex="High Knees"><span class="ex-ico">🔥</span><span class="ex-nm">High Knees</span><span class="ex-tag">Cardio</span></li>
+              <li class="ex-item" data-ex="Arm Raises"><span class="ex-ico">🙌</span><span class="ex-nm">Arm Raises</span><span class="ex-tag">Shoulders</span></li>
+            </ul>
+
+            <div class="set-control">
+              <span class="set-ctrl-label">Sets</span>
+              <div class="set-stepper">
+                <button class="step-btn" id="setDec">−</button>
+                <span class="step-val" id="setVal">3</span>
+                <button class="step-btn" id="setInc">+</button>
+              </div>
+            </div>
+          </aside>
+
+          <!-- CENTER: Camera -->
+          <section class="dash-panel panel-center">
+            <div class="camera-zone" id="cameraZone">
+              <video id="videoFeed" autoplay playsinline muted></video>
+              <canvas id="poseCanvas"></canvas>
+
+              <div class="cam-placeholder" id="camPlaceholder">
+                <div class="cam-anim-ring"></div>
+                <div class="cam-anim-ring cam-ring-2"></div>
+                <svg class="cam-icon" width="52" height="52" viewBox="0 0 52 52" fill="none">
+                  <path d="M8 20h-4a3 3 0 00-3 3v20a3 3 0 003 3h48a3 3 0 003-3V23a3 3 0 00-3-3h-4l-5-8H13l-5 8z" stroke="var(--accent)" stroke-width="1.8" fill="none"/>
+                  <circle cx="26" cy="32" r="8" stroke="var(--accent)" stroke-width="1.8" fill="none"/>
+                  <circle cx="26" cy="32" r="3" fill="var(--accent)" opacity="0.4"/>
+                </svg>
+                <p class="cam-msg" id="camMsg">Select an exercise &amp; enable camera</p>
+              </div>
+
+              <div class="rep-hud" id="repHud">
+                <span class="rep-number" id="repNumber">0</span>
+                <span class="rep-unit">REPS</span>
+              </div>
+
+              <div class="set-hud" id="setHud">
+                <span class="set-hud-label">SET</span>
+                <span class="set-hud-val" id="setHudVal">1/3</span>
+              </div>
+            </div>
+
+            <div class="cam-controls">
+              <button class="ctrl-btn cam-btn" id="btnCam">
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                  <path d="M2 5.5h1.5L5 3.5h8l1.5 2H17a1 1 0 011 1v8a1 1 0 01-1 1H1a1 1 0 01-1-1v-8a1 1 0 011-1z" stroke="currentColor" stroke-width="1.5" fill="none"/>
+                  <circle cx="9" cy="10" r="2.5" stroke="currentColor" stroke-width="1.5" fill="none"/>
+                </svg>
+                Enable Camera
+              </button>
+              <button class="ctrl-btn start-btn" id="btnStart" disabled>
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                  <polygon points="4,2 16,9 4,16" fill="currentColor"/>
+                </svg>
+                Start
+              </button>
+              <button class="ctrl-btn reset-btn" id="btnReset">
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                  <path d="M2.5 9A6.5 6.5 0 109 2.5H6M6 0.5L3 2.5 6 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+                </svg>
+                Reset
+              </button>
+            </div>
+
+            <div class="session-bar">
+              <div class="session-item"><span class="si-label">Time</span><span class="si-val" id="siTime">00:00</span></div>
+              <div class="session-item"><span class="si-label">Calories</span><span class="si-val" id="siCal">0 kcal</span></div>
+              <div class="session-item"><span class="si-label">Sets Done</span><span class="si-val" id="siSets">0/3</span></div>
+            </div>
+          </section>
+
+          <!-- RIGHT: Stats -->
+          <aside class="dash-panel panel-right">
+            <div class="panel-head">
+              <h3 class="panel-heading">Live Stats</h3>
+              <span class="live-dot" id="liveDot"></span>
+            </div>
+
+            <div class="stats-block">
+              <div class="stat-row">
+                <span class="sr-label">Exercise</span>
+                <span class="sr-val" id="stExercise">—</span>
+              </div>
+              <div class="stat-row">
+                <span class="sr-label">Reps</span>
+                <span class="sr-val sr-accent" id="stReps">0</span>
+              </div>
+              <div class="stat-row">
+                <span class="sr-label">Joint Angle</span>
+                <span class="sr-val sr-cyan" id="stAngle">0°</span>
+              </div>
+              <div class="stat-row">
+                <span class="sr-label">Form Status</span>
+                <span class="form-pill" id="stForm">Idle</span>
+              </div>
+            </div>
+
+            <div class="accuracy-block">
+              <div class="acc-row">
+                <span>Accuracy</span>
+                <span class="acc-pct" id="accPct">0%</span>
+              </div>
+              <div class="acc-track">
+                <div class="acc-fill" id="accFill" style="width:0%"></div>
+              </div>
+            </div>
+
+            <div class="how-to-box">
+              <div class="htb-title">
+                <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="6.5" r="5.5" stroke="var(--accent)" stroke-width="1.3"/><path d="M6.5 4.5v3M6.5 9h.01" stroke="var(--accent)" stroke-width="1.3" stroke-linecap="round"/></svg>
+                How to Use
+              </div>
+              <ol class="htb-list">
+                <li>Pick an exercise from the left</li>
+                <li>Click <strong>Enable Camera</strong></li>
+                <li>Step back — full body in view</li>
+                <li>Press <strong>Start</strong></li>
+              </ol>
+            </div>
+          </aside>
+
+        </div>
+      </div>
+
+      <!-- ── WEEKLY PLAN PAGE ── -->
+      <div class="page" id="page-weekly">
+        <div class="page-header">
+          <h2 class="page-title">Weekly Workout Plan</h2>
+          <p class="page-sub">Structured 7-day program adapted to your goal</p>
+        </div>
+        <div class="weekly-grid" id="weeklyGrid"></div>
+      </div>
+
+      <!-- ── PROFILE PAGE ── -->
+      <div class="page" id="page-profile-page">
+        <div class="profile-page-wrap">
+          <div class="profile-page-card">
+            <div class="pp-avatar" id="ppAvatar">?</div>
+            <h2 class="pp-name" id="ppName">Guest User</h2>
+            <span class="pp-goal-tag" id="ppGoalTag">No goal set</span>
+            <div class="pp-stats-grid">
+              <div class="pp-stat"><span class="pp-stat-v" id="ppAge">—</span><span class="pp-stat-l">Age</span></div>
+              <div class="pp-stat"><span class="pp-stat-v" id="ppWeight">—</span><span class="pp-stat-l">Weight</span></div>
+              <div class="pp-stat"><span class="pp-stat-v" id="ppHeight">—</span><span class="pp-stat-l">Height</span></div>
+            </div>
+          </div>
+
+          <div class="profile-edit-card">
+            <h3 class="pec-title">Edit Profile</h3>
+            <div class="pec-grid">
+              <div class="form-group"><label class="form-label">Name</label><input type="text" class="form-input" id="edit-name" /></div>
+              <div class="form-group"><label class="form-label">Age</label><input type="number" class="form-input" id="edit-age" /></div>
+              <div class="form-group"><label class="form-label">Weight (kg)</label><input type="number" class="form-input" id="edit-weight" /></div>
+              <div class="form-group"><label class="form-label">Height (cm)</label><input type="number" class="form-input" id="edit-height" /></div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Fitness Goal</label>
+              <div class="goal-chips" id="editGoalChips">
+                <button class="goal-chip" data-goal="fat-loss">🔥 Fat Loss</button>
+                <button class="goal-chip" data-goal="muscle-gain">💪 Muscle Gain</button>
+                <button class="goal-chip" data-goal="strength">🏋 Strength</button>
+                <button class="goal-chip" data-goal="endurance">🏃 Endurance</button>
+                <button class="goal-chip" data-goal="full-fitness">🌟 Full Fitness</button>
+                <button class="goal-chip" data-goal="lean">✂ Lean Body</button>
+                <button class="goal-chip" data-goal="beginner">🌱 Beginner</button>
+                <button class="goal-chip" data-goal="athletic">⚡ Athletic</button>
+                <button class="goal-chip" data-goal="home">🏠 Home Workout</button>
+                <button class="goal-chip" data-goal="gym">🏛 Gym Workout</button>
+              </div>
+            </div>
+            <button class="btn-pec-save" id="btnEditSave">Update Profile</button>
+            <p class="pec-status" id="pecStatus"></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── ABOUT PAGE ── -->
+      <div class="page" id="page-about">
+        <div class="about-wrap">
+          <div class="about-hero">
+            <svg width="60" height="60" viewBox="0 0 60 60" fill="none">
+              <path d="M30 3L57 18.5V41.5L30 57L3 41.5V18.5L30 3Z" stroke="var(--accent)" stroke-width="1.5"/>
+              <path d="M30 12L50 23V37L30 48L10 37V23L30 12Z" fill="var(--accent)" opacity="0.15"/>
+            </svg>
+            <h2 class="about-title">AI Workout Trainer</h2>
+            <p class="about-tagline">Intelligent fitness coaching powered by computer vision</p>
+          </div>
+
+          <div class="about-grid">
+            <div class="about-card">
+              <div class="ac-icon">🎯</div>
+              <h4 class="ac-title">Purpose</h4>
+              <p class="ac-text">AI Workout Trainer is built to make personal fitness coaching accessible to everyone. Using real-time camera analysis and AI-driven feedback, it corrects your form, counts your reps, and tracks your progress — no gym trainer required.</p>
+            </div>
+            <div class="about-card">
+              <div class="ac-icon">🧠</div>
+              <h4 class="ac-title">How It Works</h4>
+              <p class="ac-text">The app uses your device camera to detect body keypoints in real time. It calculates joint angles to verify form accuracy, counts repetitions automatically, and provides immediate feedback on technique corrections.</p>
+            </div>
+            <div class="about-card">
+              <div class="ac-icon">📋</div>
+              <h4 class="ac-title">Features</h4>
+              <ul class="ac-list">
+                <li>Real-time pose estimation via camera</li>
+                <li>Rep counter with joint angle tracking</li>
+                <li>7-day personalized workout plans</li>
+                <li>10 fitness goal categories</li>
+                <li>Goal-based diet recommendations</li>
+                <li>PDF export of full fitness plan</li>
+                <li>Dark &amp; light theme support</li>
+              </ul>
+            </div>
+            <div class="about-card">
+              <div class="ac-icon">🚀</div>
+              <h4 class="ac-title">Technology</h4>
+              <p class="ac-text">Built with vanilla JavaScript and the Web Camera API. No backend required — all processing happens locally in your browser for maximum privacy. Designed for Vercel deployment with zero build steps.</p>
+            </div>
+          </div>
+
+          <div class="about-mission">
+            <h3 class="am-title">Our Mission</h3>
+            <p class="am-text">We believe everyone deserves access to intelligent, personalized fitness guidance. AI Workout Trainer democratizes coaching by bringing AI-powered form analysis directly to your browser — free, private, and always available.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── TEAM PAGE ── -->
+      <div class="page" id="page-team">
+        <div class="team-wrap">
+          <div class="team-header">
+            <h2 class="team-title">Meet the Team</h2>
+            <p class="team-sub">The mind behind AI Workout Trainer</p>
+          </div>
+
+          <div class="team-cards">
+            <div class="team-card">
+              <div class="tc-glow"></div>
+              <div class="tc-inner">
+                <div class="tc-avatar">
+                  <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                    <circle cx="24" cy="18" r="9" stroke="var(--accent)" stroke-width="1.8" fill="none"/>
+                    <path d="M5 44c0-10.5 8.5-19 19-19s19 8.5 19 19" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round" fill="none"/>
+                  </svg>
+                </div>
+                <h3 class="tc-name">Vanga Manoj</h3>
+                <span class="tc-role">Developer</span>
+                <p class="tc-email">vangamanoj936@gmail.com</p>
+
+                <div class="tc-socials">
+                  <a class="tc-social-btn github" href="https://github.com/VANGAMANOJ" target="_blank" rel="noopener" aria-label="GitHub">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+                    </svg>
+                  </a>
+                  <a class="tc-social-btn linkedin" href="https://linkedin.com/in/vanga-manoj" target="_blank" rel="noopener" aria-label="LinkedIn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                    </svg>
+                  </a>
+                  <a class="tc-social-btn email" href="mailto:vangamanoj936@gmail.com" aria-label="Email">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke-linecap="round"/>
+                      <polyline points="22,6 12,13 2,6" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </a>
+                </div>
+
+                <div class="tc-tags">
+                  <span class="tc-tag">JavaScript</span>
+                  <span class="tc-tag">Web Dev</span>
+                  <span class="tc-tag">AI/ML</span>
+                  <span class="tc-tag">UI/UX</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast"></div>
+
+  <script src="script.js"></script>
+  <script src="pdf.js"></script>
+</body>
+</html>
