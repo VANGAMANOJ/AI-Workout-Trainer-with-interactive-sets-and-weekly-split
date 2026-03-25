@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <title>FitHome — AI Workout Trainer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+
+<!-- ═══════════════ LOADING SCREEN ═══════════════ -->
+<div id="loadingScreen" class="loading-screen">
+  <div class="loading-inner">
+    <div class="loading-logo">
+      <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+        <circle cx="24" cy="24" r="22" stroke="var(--teal)" stroke-width="1.5" stroke-dasharray="6 3"/>
+        <path d="M24 8C15.2 8 8 15.2 8 24s7.2 16 16 16 16-7.2 16-16S32.8 8 24 8z" fill="var(--teal)" opacity="0.15"/>
+        <path d="M18 20l6 4 6-4M18 28l6-4 6 4" stroke="var(--teal)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div class="loading-title">FitHome</div>
+    <div class="loading-bar"><div class="loading-progress" id="loadProgress"></div></div>
+    <p class="loading-status" id="loadStatus">Loading pose engine…</p>
+  </div>
+</div>
+
+<!-- ═══════════════ ONBOARDING ═══════════════ -->
+<div id="onboardScreen" class="onboard-screen hidden">
+  <div class="onboard-bg"></div>
+  <div class="onboard-content">
+    <div class="onboard-badge">Your private home coach</div>
+    <h1 class="onboard-title">Train smarter.<br/><em>At home.</em></h1>
+    <p class="onboard-desc">Real-time AI form detection. No gym. No judgment. Just you and your goals.</p>
+
+    <div class="onboard-pills">
+      <span class="onboard-pill">🏠 Home workout</span>
+      <span class="onboard-pill">🔒 100% private</span>
+      <span class="onboard-pill">🤖 AI tracking</span>
+    </div>
+
+    <div class="onboard-form" id="onboardForm">
+      <div class="of-row">
+        <div class="of-field">
+          <label>Your name</label>
+          <input type="text" id="ob-name" placeholder="e.g. Priya" autocomplete="off"/>
+        </div>
+        <div class="of-field">
+          <label>Age</label>
+          <input type="number" id="ob-age" placeholder="24" min="12" max="70"/>
+        </div>
+      </div>
+      <div class="of-row">
+        <div class="of-field">
+          <label>Weight (kg)</label>
+          <input type="number" id="ob-weight" placeholder="60"/>
+        </div>
+        <div class="of-field">
+          <label>Height (cm)</label>
+          <input type="number" id="ob-height" placeholder="165"/>
+        </div>
+      </div>
+      <div class="of-field full">
+        <label>My goal</label>
+        <div class="goal-grid" id="obGoalGrid">
+          <button class="goal-opt" data-goal="fat-loss" data-label="Fat Loss">🔥 Fat Loss</button>
+          <button class="goal-opt" data-goal="muscle-gain" data-label="Muscle Gain">💪 Muscle Gain</button>
+          <button class="goal-opt" data-goal="beginner" data-label="Beginner">🌱 Beginner</button>
+          <button class="goal-opt" data-goal="endurance" data-label="Endurance">🏃 Endurance</button>
+          <button class="goal-opt" data-goal="lean" data-label="Lean Body">✨ Lean Body</button>
+          <button class="goal-opt" data-goal="strength" data-label="Strength">🏋 Strength</button>
+        </div>
+      </div>
+      <button class="btn-start-journey" id="btnStartJourney">Start My Journey →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ MAIN APP ═══════════════ -->
+<div id="mainApp" class="main-app hidden">
+
+  <!-- TOP BAR -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="menu-btn" id="menuBtn" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="topbar-logo">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+          <circle cx="11" cy="11" r="10" stroke="var(--teal)" stroke-width="1.4"/>
+          <path d="M8 9l3 2 3-2M8 13l3-2 3 2" stroke="var(--teal)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>FitHome</span>
+      </div>
+    </div>
+    <div class="topbar-center">
+      <span class="today-pill" id="todayPill">—</span>
+    </div>
+    <div class="topbar-right">
+      <span class="user-greet" id="userGreet">Hi!</span>
+      <label class="mini-toggle" title="Toggle theme">
+        <input type="checkbox" id="themeToggle"/>
+        <span class="mt-track"><span class="mt-thumb"></span></span>
+      </label>
+    </div>
+  </header>
+
+  <!-- SIDE DRAWER -->
+  <div class="drawer-overlay" id="drawerOverlay"></div>
+  <nav class="side-drawer" id="sideDrawer">
+    <div class="drawer-profile" id="drawerProfile">
+      <div class="dp-avatar" id="dpAvatar">P</div>
+      <div class="dp-info">
+        <span class="dp-name" id="dpName">User</span>
+        <span class="dp-goal" id="dpGoal">No goal</span>
+      </div>
+    </div>
+    <div class="drawer-links">
+      <a class="dl-link active" data-page="workout" href="#">🏋 Today's Workout</a>
+      <a class="dl-link" data-page="history" href="#">📊 History</a>
+      <a class="dl-link" data-page="profile" href="#">👤 Profile</a>
+      <a class="dl-link" data-page="about" href="#">ℹ About</a>
+    </div>
+    <div class="drawer-bottom">
+      <button class="btn-export-pdf" id="btnExportPDF">📄 Export PDF Plan</button>
+    </div>
+  </nav>
+
+  <!-- PAGES -->
+  <main class="pages" id="pages">
+
+    <!-- ══ WORKOUT PAGE ══ -->
+    <div class="page active" id="page-workout">
+
+      <!-- TODAY HEADER -->
+      <div class="today-header" id="todayHeader">
+        <div class="th-day" id="thDay">Monday</div>
+        <div class="th-label" id="thLabel">Today's Workout: <strong id="thFocus">Chest & Triceps</strong></div>
+        <div class="th-meta">
+          <span id="thExCount">0 exercises</span>
+          <span class="th-sep">·</span>
+          <span id="thDuration">~30 min</span>
+          <span class="th-sep">·</span>
+          <span id="thGoalTag">—</span>
+        </div>
+      </div>
+
+      <!-- SUNDAY CHOICE (hidden unless Sunday) -->
+      <div class="sunday-choice hidden" id="sundayChoice">
+        <h3>It's Sunday — your day, your call.</h3>
+        <div class="sunday-btns">
+          <button class="sb-btn sb-rest" id="sbRest">😴 Rest Day</button>
+          <button class="sb-btn sb-workout" id="sbWorkout">💪 I want to train</button>
+        </div>
+      </div>
+
+      <!-- REST DAY SCREEN (hidden) -->
+      <div class="rest-screen hidden" id="restScreen">
+        <div class="rest-inner">
+          <div class="rest-emoji">😴</div>
+          <h2>Rest Day</h2>
+          <p>Your body grows when it recovers. Enjoy today's rest — you've earned it!</p>
+          <div class="rest-tips">
+            <div class="rt-item">💧 Stay hydrated</div>
+            <div class="rt-item">🥗 Eat well</div>
+            <div class="rt-item">🧘 Light stretching OK</div>
+          </div>
+          <button class="btn-teal" onclick="showPage('history')">View My Progress →</button>
+        </div>
+      </div>
+
+      <!-- EXERCISE LIST (shown before selecting) -->
+      <div class="exercise-picker" id="exercisePicker">
+        <p class="picker-hint">Select an exercise to begin</p>
+        <div class="ex-cards" id="exCards">
+          <!-- populated by JS -->
+        </div>
+      </div>
+
+      <!-- ACTIVE WORKOUT (shown after selecting) -->
+      <div class="active-workout hidden" id="activeWorkout">
+
+        <!-- Back button -->
+        <button class="back-btn" id="backToList">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <path d="M11 4l-6 5 6 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Change exercise
+        </button>
+
+        <!-- Exercise title & set info -->
+        <div class="aw-header">
+          <h2 class="aw-name" id="awName">Bicep Curl</h2>
+          <div class="aw-set-info">
+            <span class="set-badge" id="setBadge">Set 1/3</span>
+            <span class="reps-target" id="repsTarget">Target: 12 reps</span>
+          </div>
+        </div>
+
+        <!-- CALIBRATION STEP -->
+        <div class="calibration-box" id="calibrationBox">
+          <div class="cal-inner">
+            <div class="cal-icon">📐</div>
+            <h3>Calibrate Position</h3>
+            <p id="calInstruction">Stand with arms fully extended at your sides. Hold still for 3 seconds.</p>
+            <div class="cal-countdown" id="calCountdown"></div>
+            <div class="cal-status" id="calStatus">Waiting for camera…</div>
+            <button class="btn-teal" id="btnCalibrate" disabled>Enable Camera & Calibrate</button>
+          </div>
+        </div>
+
+        <!-- TRACKING VIEW -->
+        <div class="tracking-view hidden" id="trackingView">
+          <div class="camera-wrap" id="cameraWrap">
+            <video id="videoEl" autoplay playsinline muted></video>
+            <canvas id="canvasEl"></canvas>
+
+            <!-- Angle display -->
+            <div class="angle-badge" id="angleBadge">
+              <span class="ab-value" id="abValue">—°</span>
+              <span class="ab-label">angle</span>
+            </div>
+
+            <!-- Form alert overlay -->
+            <div class="form-alert" id="formAlert"></div>
+          </div>
+
+          <!-- STATS ROW -->
+          <div class="stats-row">
+            <div class="stat-chip">
+              <span class="sc-num" id="scReps">0</span>
+              <span class="sc-label">REPS</span>
+            </div>
+            <div class="stat-chip stat-chip--main">
+              <span class="sc-num" id="scAngle">—°</span>
+              <span class="sc-label">ANGLE</span>
+            </div>
+            <div class="stat-chip">
+              <span class="sc-num" id="scSets">0/3</span>
+              <span class="sc-label">SETS</span>
+            </div>
+          </div>
+
+          <!-- FEEDBACK BAR -->
+          <div class="feedback-bar" id="feedbackBar">
+            <span class="fb-icon" id="fbIcon">💡</span>
+            <span class="fb-text" id="fbText">Get into position to begin</span>
+          </div>
+
+          <!-- CONTROLS -->
+          <div class="tracking-controls">
+            <button class="tc-btn tc-pause" id="btnPause">⏸ Pause</button>
+            <button class="tc-btn tc-reset" id="btnResetSet">↺ Reset Set</button>
+          </div>
+        </div>
+
+        <!-- REST TIMER (between sets) -->
+        <div class="rest-timer-box hidden" id="restTimerBox">
+          <div class="rtb-inner">
+            <div class="rtb-label">Rest Time</div>
+            <div class="rtb-countdown" id="rtbCountdown">60</div>
+            <div class="rtb-next" id="rtbNext">Next: Set 2/3 · Bicep Curl</div>
+            <button class="btn-teal" id="btnSkipRest">Skip Rest →</button>
+          </div>
+        </div>
+
+        <!-- WORKOUT COMPLETE -->
+        <div class="workout-complete hidden" id="workoutComplete">
+          <div class="wc-inner">
+            <div class="wc-emoji">🎉</div>
+            <h2>Exercise Complete!</h2>
+            <div class="wc-stats">
+              <div class="wcs-item"><span id="wcTotalReps">0</span><label>Total Reps</label></div>
+              <div class="wcs-item"><span id="wcSets">3</span><label>Sets</label></div>
+              <div class="wcs-item"><span id="wcDuration">0:00</span><label>Duration</label></div>
+            </div>
+            <div class="wc-btns">
+              <button class="btn-teal" id="btnNextExercise">Next Exercise →</button>
+              <button class="btn-outline" id="btnRepeatExercise">↺ Repeat</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ══ HISTORY PAGE ══ -->
+    <div class="page hidden" id="page-history">
+      <div class="history-wrap">
+        <h2 class="hw-title">Workout History</h2>
+        <div class="hw-streak" id="hwStreak">
+          <span class="streak-num" id="streakNum">0</span>
+          <span class="streak-label">Day Streak 🔥</span>
+        </div>
+        <div class="history-list" id="historyList">
+          <div class="history-empty">No workouts yet. Start your first session!</div>
+        </div>
+        <button class="btn-danger-sm" id="btnClearHistory">Clear History</button>
+      </div>
+    </div>
+
+    <!-- ══ PROFILE PAGE ══ -->
+    <div class="page hidden" id="page-profile">
+      <div class="profile-wrap">
+        <div class="profile-card-big">
+          <div class="pcb-avatar" id="pcbAvatar">P</div>
+          <h2 id="pcbName">User</h2>
+          <span class="pcb-goal" id="pcbGoal">—</span>
+          <div class="pcb-stats">
+            <div class="pcbs-item"><span id="pcbAge">—</span><label>Age</label></div>
+            <div class="pcbs-item"><span id="pcbWeight">—</span><label>Weight</label></div>
+            <div class="pcbs-item"><span id="pcbHeight">—</span><label>Height</label></div>
+          </div>
+        </div>
+
+        <div class="profile-edit-box">
+          <h3>Edit Profile</h3>
+          <div class="peb-row">
+            <div class="of-field"><label>Name</label><input type="text" id="pe-name"/></div>
+            <div class="of-field"><label>Age</label><input type="number" id="pe-age"/></div>
+            <div class="of-field"><label>Weight (kg)</label><input type="number" id="pe-weight"/></div>
+            <div class="of-field"><label>Height (cm)</label><input type="number" id="pe-height"/></div>
+          </div>
+          <div class="of-field full">
+            <label>Goal</label>
+            <div class="goal-grid" id="peGoalGrid">
+              <button class="goal-opt" data-goal="fat-loss" data-label="Fat Loss">🔥 Fat Loss</button>
+              <button class="goal-opt" data-goal="muscle-gain" data-label="Muscle Gain">💪 Muscle Gain</button>
+              <button class="goal-opt" data-goal="beginner" data-label="Beginner">🌱 Beginner</button>
+              <button class="goal-opt" data-goal="endurance" data-label="Endurance">🏃 Endurance</button>
+              <button class="goal-opt" data-goal="lean" data-label="Lean Body">✨ Lean Body</button>
+              <button class="goal-opt" data-goal="strength" data-label="Strength">🏋 Strength</button>
+            </div>
+          </div>
+          <button class="btn-teal" id="btnSaveProfile">Save Changes</button>
+          <p class="save-msg" id="savePEMsg"></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ ABOUT PAGE ══ -->
+    <div class="page hidden" id="page-about">
+      <div class="about-wrap">
+        <div class="about-hero">
+          <div class="ah-icon">🏠</div>
+          <h2>Built for home.<br/>Made for <em>you.</em></h2>
+          <p>AI-powered form guidance. No gym. No membership. Complete privacy.</p>
+        </div>
+
+        <div class="about-for-grid">
+          <div class="afg-card">
+            <span>🏠</span>
+            <h4>Home Users</h4>
+            <p>Everything you need is your body weight and a phone. No equipment required.</p>
+          </div>
+          <div class="afg-card">
+            <span>🔒</span>
+            <h4>Complete Privacy</h4>
+            <p>Your camera never leaves your device. All processing happens locally — no uploads.</p>
+          </div>
+          <div class="afg-card">
+            <span>💰</span>
+            <h4>No Gym Cost</h4>
+            <p>Professional-quality coaching without the gym membership or personal trainer fees.</p>
+          </div>
+          <div class="afg-card">
+            <span>🤫</span>
+            <h4>For Introverts</h4>
+            <p>Train on your schedule, in your space, without social pressure or judgment.</p>
+          </div>
+        </div>
+
+        <div class="about-tech">
+          <h3>How It Works</h3>
+          <div class="at-steps">
+            <div class="at-step"><span class="ats-num">1</span><p>Camera detects your body landmarks using MediaPipe Pose AI</p></div>
+            <div class="at-step"><span class="ats-num">2</span><p>Joint angles are calculated in real-time (shoulder, elbow, hip, knee)</p></div>
+            <div class="at-step"><span class="ats-num">3</span><p>Reps are counted only when you complete a full range of motion</p></div>
+            <div class="at-step"><span class="ats-num">4</span><p>Voice and visual feedback corrects your form instantly</p></div>
+          </div>
+        </div>
+
+        <div class="about-team">
+          <h3>Developer</h3>
+          <div class="dev-card">
+            <div class="dc-av">V</div>
+            <div class="dc-info">
+              <h4>Vanga Manoj</h4>
+              <p>Developer</p>
+              <a href="mailto:vangamanoj936@gmail.com" class="dc-email">vangamanoj936@gmail.com</a>
+            </div>
+            <div class="dc-links">
+              <a href="https://github.com/VANGAMANOJ" target="_blank" rel="noopener" class="dcl-btn" title="GitHub">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+              </a>
+              <a href="https://linkedin.com/in/vanga-manoj" target="_blank" rel="noopener" class="dcl-btn" title="LinkedIn">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- MediaPipe via CDN -->
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/pose.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466862/camera_utils.js" crossorigin="anonymous"></script>
+<script src="script.js"></script>
+<script src="pdf.js"></script>
+</body>
+</html>
