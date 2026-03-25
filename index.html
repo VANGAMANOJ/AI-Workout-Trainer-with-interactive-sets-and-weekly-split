@@ -1,419 +1,432 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
-  <meta name="apple-mobile-web-app-capable" content="yes"/>
-  <title>FitHome — AI Workout Trainer</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="style.css"/>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FitAI — Your Smart Home Trainer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Clash+Display:wght@400;500;600;700&family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-<!-- ═══════════════ LOADING SCREEN ═══════════════ -->
-<div id="loadingScreen" class="loading-screen">
-  <div class="loading-inner">
-    <div class="loading-logo">
-      <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-        <circle cx="24" cy="24" r="22" stroke="var(--teal)" stroke-width="1.5" stroke-dasharray="6 3"/>
-        <path d="M24 8C15.2 8 8 15.2 8 24s7.2 16 16 16 16-7.2 16-16S32.8 8 24 8z" fill="var(--teal)" opacity="0.15"/>
-        <path d="M18 20l6 4 6-4M18 28l6-4 6 4" stroke="var(--teal)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
+<!-- ═══════════════════════ ENTRY OVERLAY ═══════════════════════ -->
+<div id="entry-overlay" class="entry-overlay">
+  <div class="entry-glow"></div>
+  <div class="entry-box">
+    <div class="entry-logo">
+      <span class="logo-mark">F</span>
+      <span class="logo-text">FitAI</span>
     </div>
-    <div class="loading-title">FitHome</div>
-    <div class="loading-bar"><div class="loading-progress" id="loadProgress"></div></div>
-    <p class="loading-status" id="loadStatus">Loading pose engine…</p>
+    <h2 class="entry-heading">Train Smarter.<br/>No Gym Needed.</h2>
+    <p class="entry-sub">AI-powered workout guidance built for home, privacy & real results.</p>
+    <div class="entry-btns">
+      <button class="btn-primary" onclick="App.openProfileSetup()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Create Profile
+      </button>
+      <button class="btn-ghost" onclick="App.guestMode()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Continue as Guest
+      </button>
+    </div>
+    <p class="entry-note">🔒 No account needed · Works offline · 100% private</p>
   </div>
 </div>
 
-<!-- ═══════════════ ONBOARDING ═══════════════ -->
-<div id="onboardScreen" class="onboard-screen hidden">
-  <div class="onboard-bg"></div>
-  <div class="onboard-content">
-    <div class="onboard-badge">Your private home coach</div>
-    <h1 class="onboard-title">Train smarter.<br/><em>At home.</em></h1>
-    <p class="onboard-desc">Real-time AI form detection. No gym. No judgment. Just you and your goals.</p>
-
-    <div class="onboard-pills">
-      <span class="onboard-pill">🏠 Home workout</span>
-      <span class="onboard-pill">🔒 100% private</span>
-      <span class="onboard-pill">🤖 AI tracking</span>
-    </div>
-
-    <div class="onboard-form" id="onboardForm">
-      <div class="of-row">
-        <div class="of-field">
-          <label>Your name</label>
-          <input type="text" id="ob-name" placeholder="e.g. Priya" autocomplete="off"/>
+<!-- ═══════════════════════ PROFILE SETUP ═══════════════════════ -->
+<div id="profile-modal" class="modal-overlay hidden">
+  <div class="modal-box profile-modal-box">
+    <button class="modal-close" onclick="App.closeProfileSetup()">✕</button>
+    <div class="modal-step" id="profile-step-1">
+      <h3 class="modal-title">Let's Build Your Profile</h3>
+      <p class="modal-sub">We'll create a plan tailored just for you.</p>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Your Name</label>
+          <input type="text" id="p-name" placeholder="e.g. Priya" />
         </div>
-        <div class="of-field">
+        <div class="form-group">
           <label>Age</label>
-          <input type="number" id="ob-age" placeholder="24" min="12" max="70"/>
+          <input type="number" id="p-age" placeholder="e.g. 24" min="10" max="80" />
         </div>
-      </div>
-      <div class="of-row">
-        <div class="of-field">
-          <label>Weight (kg)</label>
-          <input type="number" id="ob-weight" placeholder="60"/>
-        </div>
-        <div class="of-field">
+        <div class="form-group">
           <label>Height (cm)</label>
-          <input type="number" id="ob-height" placeholder="165"/>
+          <input type="number" id="p-height" placeholder="e.g. 165" />
+        </div>
+        <div class="form-group">
+          <label>Weight (kg)</label>
+          <input type="number" id="p-weight" placeholder="e.g. 60" />
+        </div>
+        <div class="form-group full">
+          <label>Gender</label>
+          <div class="pill-select" id="gender-select">
+            <button class="pill" data-val="female" onclick="App.selectPill('gender-select',this)">Female</button>
+            <button class="pill" data-val="male" onclick="App.selectPill('gender-select',this)">Male</button>
+            <button class="pill" data-val="other" onclick="App.selectPill('gender-select',this)">Other</button>
+          </div>
+        </div>
+        <div class="form-group full">
+          <label>Experience Level</label>
+          <div class="pill-select" id="level-select">
+            <button class="pill" data-val="beginner" onclick="App.selectPill('level-select',this)">Beginner</button>
+            <button class="pill" data-val="intermediate" onclick="App.selectPill('level-select',this)">Intermediate</button>
+            <button class="pill" data-val="advanced" onclick="App.selectPill('level-select',this)">Advanced</button>
+          </div>
         </div>
       </div>
-      <div class="of-field full">
-        <label>My goal</label>
-        <div class="goal-grid" id="obGoalGrid">
-          <button class="goal-opt" data-goal="fat-loss" data-label="Fat Loss">🔥 Fat Loss</button>
-          <button class="goal-opt" data-goal="muscle-gain" data-label="Muscle Gain">💪 Muscle Gain</button>
-          <button class="goal-opt" data-goal="beginner" data-label="Beginner">🌱 Beginner</button>
-          <button class="goal-opt" data-goal="endurance" data-label="Endurance">🏃 Endurance</button>
-          <button class="goal-opt" data-goal="lean" data-label="Lean Body">✨ Lean Body</button>
-          <button class="goal-opt" data-goal="strength" data-label="Strength">🏋 Strength</button>
-        </div>
-      </div>
-      <button class="btn-start-journey" id="btnStartJourney">Start My Journey →</button>
+      <button class="btn-primary full-w" onclick="App.profileStep2()">Next: Choose Your Goal →</button>
+    </div>
+
+    <div class="modal-step hidden" id="profile-step-2">
+      <button class="back-btn" onclick="App.profileStep1()">← Back</button>
+      <h3 class="modal-title">What's Your Goal?</h3>
+      <p class="modal-sub">Pick the goal that fits you best right now.</p>
+      <div class="goal-grid" id="goal-grid"></div>
+      <button class="btn-primary full-w" onclick="App.saveProfile()" style="margin-top:20px">Save & Start Training →</button>
     </div>
   </div>
 </div>
 
-<!-- ═══════════════ MAIN APP ═══════════════ -->
-<div id="mainApp" class="main-app hidden">
+<!-- ═══════════════════════ MAIN APP ═══════════════════════ -->
+<div id="main-app" class="hidden">
 
-  <!-- TOP BAR -->
-  <header class="topbar">
-    <div class="topbar-left">
-      <button class="menu-btn" id="menuBtn" aria-label="Menu">
+  <!-- NAVBAR -->
+  <nav class="navbar" id="navbar">
+    <div class="nav-inner">
+      <div class="nav-logo">
+        <span class="logo-mark">F</span>
+        <span class="logo-text">FitAI</span>
+      </div>
+      <div class="nav-links" id="nav-links">
+        <a href="#" class="nav-link active" data-section="home" onclick="App.nav('home',this)">Home</a>
+        <a href="#" class="nav-link" data-section="workout" onclick="App.nav('workout',this)">Workout Plan</a>
+        <a href="#" class="nav-link" data-section="camera" onclick="App.nav('camera',this)">Camera</a>
+        <a href="#" class="nav-link" data-section="profile-view" onclick="App.nav('profile-view',this)">Profile</a>
+        <a href="#" class="nav-link" data-section="history" onclick="App.nav('history',this)">History</a>
+        <a href="#" class="nav-link" data-section="about" onclick="App.nav('about',this)">About</a>
+        <a href="#" class="nav-link" data-section="team" onclick="App.nav('team',this)">Team</a>
+      </div>
+      <div class="nav-actions">
+        <button class="btn-nav-ghost" onclick="App.nav('workout',document.querySelector('[data-section=workout]'))">Start Workout</button>
+        <div class="user-chip" id="user-chip">Guest</div>
+      </div>
+      <button class="hamburger" id="hamburger" onclick="App.toggleMenu()">
         <span></span><span></span><span></span>
       </button>
-      <div class="topbar-logo">
-        <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-          <circle cx="11" cy="11" r="10" stroke="var(--teal)" stroke-width="1.4"/>
-          <path d="M8 9l3 2 3-2M8 13l3-2 3 2" stroke="var(--teal)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        <span>FitHome</span>
-      </div>
-    </div>
-    <div class="topbar-center">
-      <span class="today-pill" id="todayPill">—</span>
-    </div>
-    <div class="topbar-right">
-      <span class="user-greet" id="userGreet">Hi!</span>
-      <label class="mini-toggle" title="Toggle theme">
-        <input type="checkbox" id="themeToggle"/>
-        <span class="mt-track"><span class="mt-thumb"></span></span>
-      </label>
-    </div>
-  </header>
-
-  <!-- SIDE DRAWER -->
-  <div class="drawer-overlay" id="drawerOverlay"></div>
-  <nav class="side-drawer" id="sideDrawer">
-    <div class="drawer-profile" id="drawerProfile">
-      <div class="dp-avatar" id="dpAvatar">P</div>
-      <div class="dp-info">
-        <span class="dp-name" id="dpName">User</span>
-        <span class="dp-goal" id="dpGoal">No goal</span>
-      </div>
-    </div>
-    <div class="drawer-links">
-      <a class="dl-link active" data-page="workout" href="#">🏋 Today's Workout</a>
-      <a class="dl-link" data-page="history" href="#">📊 History</a>
-      <a class="dl-link" data-page="profile" href="#">👤 Profile</a>
-      <a class="dl-link" data-page="about" href="#">ℹ About</a>
-    </div>
-    <div class="drawer-bottom">
-      <button class="btn-export-pdf" id="btnExportPDF">📄 Export PDF Plan</button>
     </div>
   </nav>
 
-  <!-- PAGES -->
-  <main class="pages" id="pages">
-
-    <!-- ══ WORKOUT PAGE ══ -->
-    <div class="page active" id="page-workout">
-
-      <!-- TODAY HEADER -->
-      <div class="today-header" id="todayHeader">
-        <div class="th-day" id="thDay">Monday</div>
-        <div class="th-label" id="thLabel">Today's Workout: <strong id="thFocus">Chest & Triceps</strong></div>
-        <div class="th-meta">
-          <span id="thExCount">0 exercises</span>
-          <span class="th-sep">·</span>
-          <span id="thDuration">~30 min</span>
-          <span class="th-sep">·</span>
-          <span id="thGoalTag">—</span>
+  <!-- ─── HOME SECTION ─── -->
+  <section id="section-home" class="section active">
+    <div class="hero-section">
+      <div class="hero-bg-orb orb1"></div>
+      <div class="hero-bg-orb orb2"></div>
+      <div class="hero-content">
+        <div class="hero-eyebrow">
+          <span class="pulse-dot"></span> AI-Powered Fitness
+        </div>
+        <h1 class="hero-title" id="hero-title">Train at Home.<br/><em>Like a Pro.</em></h1>
+        <p class="hero-desc">Real-time AI tracking, personalized workout plans, and zero gym fees. Built for introverts, women, and anyone who prefers privacy over packed gyms.</p>
+        <div class="hero-cta">
+          <button class="btn-primary large" onclick="App.nav('workout',document.querySelector('[data-section=workout]'))">
+            View My Plan
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
+          </button>
+          <button class="btn-ghost large" onclick="App.nav('camera',document.querySelector('[data-section=camera]'))">
+            Open Camera →
+          </button>
+        </div>
+        <div class="hero-stats">
+          <div class="stat-chip"><strong>🏠</strong> Home Ready</div>
+          <div class="stat-chip"><strong>📷</strong> AI Tracking</div>
+          <div class="stat-chip"><strong>🔒</strong> 100% Private</div>
+          <div class="stat-chip"><strong>⚡</strong> No Equipment</div>
         </div>
       </div>
-
-      <!-- SUNDAY CHOICE (hidden unless Sunday) -->
-      <div class="sunday-choice hidden" id="sundayChoice">
-        <h3>It's Sunday — your day, your call.</h3>
-        <div class="sunday-btns">
-          <button class="sb-btn sb-rest" id="sbRest">😴 Rest Day</button>
-          <button class="sb-btn sb-workout" id="sbWorkout">💪 I want to train</button>
-        </div>
-      </div>
-
-      <!-- REST DAY SCREEN (hidden) -->
-      <div class="rest-screen hidden" id="restScreen">
-        <div class="rest-inner">
-          <div class="rest-emoji">😴</div>
-          <h2>Rest Day</h2>
-          <p>Your body grows when it recovers. Enjoy today's rest — you've earned it!</p>
-          <div class="rest-tips">
-            <div class="rt-item">💧 Stay hydrated</div>
-            <div class="rt-item">🥗 Eat well</div>
-            <div class="rt-item">🧘 Light stretching OK</div>
+      <div class="hero-visual">
+        <div class="hero-card float-card">
+          <div class="hc-top">
+            <div class="hc-label">Today's Focus</div>
+            <div class="hc-day" id="today-focus-label">Loading…</div>
           </div>
-          <button class="btn-teal" onclick="showPage('history')">View My Progress →</button>
-        </div>
-      </div>
-
-      <!-- EXERCISE LIST (shown before selecting) -->
-      <div class="exercise-picker" id="exercisePicker">
-        <p class="picker-hint">Select an exercise to begin</p>
-        <div class="ex-cards" id="exCards">
-          <!-- populated by JS -->
-        </div>
-      </div>
-
-      <!-- ACTIVE WORKOUT (shown after selecting) -->
-      <div class="active-workout hidden" id="activeWorkout">
-
-        <!-- Back button -->
-        <button class="back-btn" id="backToList">
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-            <path d="M11 4l-6 5 6 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          Change exercise
-        </button>
-
-        <!-- Exercise title & set info -->
-        <div class="aw-header">
-          <h2 class="aw-name" id="awName">Bicep Curl</h2>
-          <div class="aw-set-info">
-            <span class="set-badge" id="setBadge">Set 1/3</span>
-            <span class="reps-target" id="repsTarget">Target: 12 reps</span>
+          <div class="hc-exercises" id="today-exercises"></div>
+          <div class="hc-footer">
+            <span class="hc-stat"><span class="hc-num">4</span> exercises</span>
+            <span class="hc-stat"><span class="hc-num">~30</span> min</span>
           </div>
         </div>
-
-        <!-- CALIBRATION STEP -->
-        <div class="calibration-box" id="calibrationBox">
-          <div class="cal-inner">
-            <div class="cal-icon">📐</div>
-            <h3>Calibrate Position</h3>
-            <p id="calInstruction">Stand with arms fully extended at your sides. Hold still for 3 seconds.</p>
-            <div class="cal-countdown" id="calCountdown"></div>
-            <div class="cal-status" id="calStatus">Waiting for camera…</div>
-            <button class="btn-teal" id="btnCalibrate" disabled>Enable Camera & Calibrate</button>
-          </div>
-        </div>
-
-        <!-- TRACKING VIEW -->
-        <div class="tracking-view hidden" id="trackingView">
-          <div class="camera-wrap" id="cameraWrap">
-            <video id="videoEl" autoplay playsinline muted></video>
-            <canvas id="canvasEl"></canvas>
-
-            <!-- Angle display -->
-            <div class="angle-badge" id="angleBadge">
-              <span class="ab-value" id="abValue">—°</span>
-              <span class="ab-label">angle</span>
-            </div>
-
-            <!-- Form alert overlay -->
-            <div class="form-alert" id="formAlert"></div>
-          </div>
-
-          <!-- STATS ROW -->
-          <div class="stats-row">
-            <div class="stat-chip">
-              <span class="sc-num" id="scReps">0</span>
-              <span class="sc-label">REPS</span>
-            </div>
-            <div class="stat-chip stat-chip--main">
-              <span class="sc-num" id="scAngle">—°</span>
-              <span class="sc-label">ANGLE</span>
-            </div>
-            <div class="stat-chip">
-              <span class="sc-num" id="scSets">0/3</span>
-              <span class="sc-label">SETS</span>
-            </div>
-          </div>
-
-          <!-- FEEDBACK BAR -->
-          <div class="feedback-bar" id="feedbackBar">
-            <span class="fb-icon" id="fbIcon">💡</span>
-            <span class="fb-text" id="fbText">Get into position to begin</span>
-          </div>
-
-          <!-- CONTROLS -->
-          <div class="tracking-controls">
-            <button class="tc-btn tc-pause" id="btnPause">⏸ Pause</button>
-            <button class="tc-btn tc-reset" id="btnResetSet">↺ Reset Set</button>
-          </div>
-        </div>
-
-        <!-- REST TIMER (between sets) -->
-        <div class="rest-timer-box hidden" id="restTimerBox">
-          <div class="rtb-inner">
-            <div class="rtb-label">Rest Time</div>
-            <div class="rtb-countdown" id="rtbCountdown">60</div>
-            <div class="rtb-next" id="rtbNext">Next: Set 2/3 · Bicep Curl</div>
-            <button class="btn-teal" id="btnSkipRest">Skip Rest →</button>
-          </div>
-        </div>
-
-        <!-- WORKOUT COMPLETE -->
-        <div class="workout-complete hidden" id="workoutComplete">
-          <div class="wc-inner">
-            <div class="wc-emoji">🎉</div>
-            <h2>Exercise Complete!</h2>
-            <div class="wc-stats">
-              <div class="wcs-item"><span id="wcTotalReps">0</span><label>Total Reps</label></div>
-              <div class="wcs-item"><span id="wcSets">3</span><label>Sets</label></div>
-              <div class="wcs-item"><span id="wcDuration">0:00</span><label>Duration</label></div>
-            </div>
-            <div class="wc-btns">
-              <button class="btn-teal" id="btnNextExercise">Next Exercise →</button>
-              <button class="btn-outline" id="btnRepeatExercise">↺ Repeat</button>
-            </div>
-          </div>
-        </div>
-
+        <div class="hero-badge badge1">🔥 Streak: <strong id="hero-streak">0</strong> days</div>
+        <div class="hero-badge badge2">✅ Form AI Ready</div>
       </div>
     </div>
 
-    <!-- ══ HISTORY PAGE ══ -->
-    <div class="page hidden" id="page-history">
-      <div class="history-wrap">
-        <h2 class="hw-title">Workout History</h2>
-        <div class="hw-streak" id="hwStreak">
-          <span class="streak-num" id="streakNum">0</span>
-          <span class="streak-label">Day Streak 🔥</span>
+    <!-- FEATURES -->
+    <div class="features-section" id="features">
+      <div class="section-header">
+        <div class="section-eyebrow">Why FitAI</div>
+        <h2 class="section-title">Everything You Need to Train Smart</h2>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feat-icon">📷</div>
+          <h4>AI Camera Tracking</h4>
+          <p>Real-time body joint detection and angle calculation helps you maintain perfect form — no personal trainer needed.</p>
         </div>
-        <div class="history-list" id="historyList">
-          <div class="history-empty">No workouts yet. Start your first session!</div>
+        <div class="feature-card">
+          <div class="feat-icon">📋</div>
+          <h4>Flexible Workout Plans</h4>
+          <p>25+ goal options from belly fat loss to posture correction. Your plan adapts to your life, not the other way around.</p>
         </div>
-        <button class="btn-danger-sm" id="btnClearHistory">Clear History</button>
+        <div class="feature-card">
+          <div class="feat-icon">🏠</div>
+          <h4>Home Workout Friendly</h4>
+          <p>No gym membership, no equipment needed. Full body workouts designed for small spaces and busy schedules.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feat-icon">📊</div>
+          <h4>Progress Tracking</h4>
+          <p>Track every session — reps, calories, streaks, and form accuracy. See your growth over time with detailed history.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feat-icon">🔒</div>
+          <h4>Complete Privacy</h4>
+          <p>Camera data never leaves your device. No cloud upload, no account required. Your workout stays yours.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feat-icon">⚡</div>
+          <h4>Quick Sessions</h4>
+          <p>15–20 minute HIIT-style sessions that fit into any schedule. Effective training without the time drain.</p>
+        </div>
       </div>
     </div>
+  </section>
 
-    <!-- ══ PROFILE PAGE ══ -->
-    <div class="page hidden" id="page-profile">
-      <div class="profile-wrap">
+  <!-- ─── WORKOUT PLAN SECTION ─── -->
+  <section id="section-workout" class="section hidden">
+    <div class="section-inner">
+      <div class="section-header" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:16px;">
+        <div>
+          <div class="section-eyebrow">Weekly Split</div>
+          <h2 class="section-title">Your Workout Plan</h2>
+          <p class="section-desc" id="plan-desc">Personalized for your goal.</p>
+        </div>
+        <div style="display:flex;gap:10px;flex-shrink:0;margin-top:8px;">
+          <button class="btn-ghost" onclick="PDFExport.print()" style="font-size:13px;padding:9px 18px;" title="Print / Save as PDF">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+            Export PDF
+          </button>
+          <button class="btn-ghost" onclick="PDFExport.copyText()" style="font-size:13px;padding:9px 18px;" title="Copy as text">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            Copy
+          </button>
+        </div>
+      </div>
+      <div class="week-strip" id="week-strip"></div>
+      <div class="workout-detail" id="workout-detail"></div>
+    </div>
+  </section>
+
+  <!-- ─── CAMERA SECTION ─── -->
+  <section id="section-camera" class="section hidden">
+    <div class="section-inner">
+      <div class="section-header">
+        <div class="section-eyebrow">Live Tracking</div>
+        <h2 class="section-title">Camera Workout</h2>
+        <p class="section-desc">Position yourself so your full body is visible. Camera tracks your form in real time.</p>
+      </div>
+      <div class="camera-layout">
+        <div class="camera-main">
+          <div class="camera-viewport" id="camera-viewport">
+            <div class="cam-placeholder" id="cam-placeholder">
+              <div class="cam-icon-wrap">
+                <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M23 7 16 12l7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+              </div>
+              <p>Camera not started</p>
+              <span>Click "Start Camera" below to begin</span>
+            </div>
+            <video id="workout-video" autoplay playsinline muted></video>
+            <canvas id="pose-canvas"></canvas>
+            <div class="cam-live-badge hidden" id="cam-live-badge">
+              <span class="live-dot"></span> LIVE
+            </div>
+            <div class="cam-error hidden" id="cam-error">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              <span id="cam-error-text">Camera error</span>
+            </div>
+          </div>
+          <div class="cam-controls">
+            <button class="btn-cam start" id="btn-start-cam" onclick="Camera.start()">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+              Start Camera
+            </button>
+            <button class="btn-cam stop hidden" id="btn-stop-cam" onclick="Camera.stop()">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>
+              Stop Camera
+            </button>
+            <div class="cam-tips">
+              <span>💡 Rear camera on mobile</span>
+              <span>📐 Landscape works best</span>
+              <span>🔒 Never recorded</span>
+            </div>
+          </div>
+        </div>
+        <div class="stats-panel">
+          <div class="stats-title">Live Stats</div>
+          <div class="stat-row">
+            <span class="stat-label">Exercise</span>
+            <span class="stat-val" id="stat-exercise">—</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Reps</span>
+            <span class="stat-val accent" id="stat-reps">0</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Sets Done</span>
+            <span class="stat-val" id="stat-sets">0 / 3</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Joint Angle</span>
+            <span class="stat-val" id="stat-angle">—°</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Form</span>
+            <span class="stat-val form-good" id="stat-form">—</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Accuracy</span>
+            <span class="stat-val" id="stat-accuracy">—%</span>
+          </div>
+          <div class="accuracy-bar-wrap">
+            <div class="accuracy-bar" id="accuracy-bar" style="width:0%"></div>
+          </div>
+          <div class="select-exercise-panel">
+            <div class="sep-label">Select Exercise</div>
+            <div class="exercise-pills" id="exercise-pills"></div>
+          </div>
+          <button class="btn-log-set" id="btn-log-set" onclick="Camera.logSet()">✓ Log Set</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── PROFILE VIEW SECTION ─── -->
+  <section id="section-profile-view" class="section hidden">
+    <div class="section-inner">
+      <div class="section-header">
+        <div class="section-eyebrow">Your Account</div>
+        <h2 class="section-title">Profile</h2>
+      </div>
+      <div class="profile-view-layout">
         <div class="profile-card-big">
-          <div class="pcb-avatar" id="pcbAvatar">P</div>
-          <h2 id="pcbName">User</h2>
-          <span class="pcb-goal" id="pcbGoal">—</span>
+          <div class="pcb-avatar" id="pcb-avatar">?</div>
+          <div class="pcb-name" id="pcb-name">Guest</div>
+          <div class="pcb-goal" id="pcb-goal">No goal set</div>
           <div class="pcb-stats">
-            <div class="pcbs-item"><span id="pcbAge">—</span><label>Age</label></div>
-            <div class="pcbs-item"><span id="pcbWeight">—</span><label>Weight</label></div>
-            <div class="pcbs-item"><span id="pcbHeight">—</span><label>Height</label></div>
+            <div class="pcb-stat"><span id="pcb-streak">0</span><label>Streak</label></div>
+            <div class="pcb-stat"><span id="pcb-sessions">0</span><label>Sessions</label></div>
+            <div class="pcb-stat"><span id="pcb-calories">0</span><label>Calories</label></div>
           </div>
         </div>
-
-        <div class="profile-edit-box">
-          <h3>Edit Profile</h3>
-          <div class="peb-row">
-            <div class="of-field"><label>Name</label><input type="text" id="pe-name"/></div>
-            <div class="of-field"><label>Age</label><input type="number" id="pe-age"/></div>
-            <div class="of-field"><label>Weight (kg)</label><input type="number" id="pe-weight"/></div>
-            <div class="of-field"><label>Height (cm)</label><input type="number" id="pe-height"/></div>
-          </div>
-          <div class="of-field full">
-            <label>Goal</label>
-            <div class="goal-grid" id="peGoalGrid">
-              <button class="goal-opt" data-goal="fat-loss" data-label="Fat Loss">🔥 Fat Loss</button>
-              <button class="goal-opt" data-goal="muscle-gain" data-label="Muscle Gain">💪 Muscle Gain</button>
-              <button class="goal-opt" data-goal="beginner" data-label="Beginner">🌱 Beginner</button>
-              <button class="goal-opt" data-goal="endurance" data-label="Endurance">🏃 Endurance</button>
-              <button class="goal-opt" data-goal="lean" data-label="Lean Body">✨ Lean Body</button>
-              <button class="goal-opt" data-goal="strength" data-label="Strength">🏋 Strength</button>
-            </div>
-          </div>
-          <button class="btn-teal" id="btnSaveProfile">Save Changes</button>
-          <p class="save-msg" id="savePEMsg"></p>
+        <div class="profile-details-card">
+          <h4>Body Stats</h4>
+          <div class="pd-row"><span>Height</span><strong id="pd-height">—</strong></div>
+          <div class="pd-row"><span>Weight</span><strong id="pd-weight">—</strong></div>
+          <div class="pd-row"><span>Level</span><strong id="pd-level">—</strong></div>
+          <div class="pd-row"><span>Gender</span><strong id="pd-gender">—</strong></div>
+          <div class="pd-row"><span>Mode</span><strong id="pd-mode">Guest</strong></div>
+          <button class="btn-primary" style="margin-top:20px;width:100%" onclick="App.openProfileSetup()">Edit Profile</button>
         </div>
       </div>
     </div>
+  </section>
 
-    <!-- ══ ABOUT PAGE ══ -->
-    <div class="page hidden" id="page-about">
-      <div class="about-wrap">
-        <div class="about-hero">
-          <div class="ah-icon">🏠</div>
-          <h2>Built for home.<br/>Made for <em>you.</em></h2>
-          <p>AI-powered form guidance. No gym. No membership. Complete privacy.</p>
+  <!-- ─── HISTORY SECTION ─── -->
+  <section id="section-history" class="section hidden">
+    <div class="section-inner">
+      <div class="section-header">
+        <div class="section-eyebrow">Your Journey</div>
+        <h2 class="section-title">Workout History</h2>
+      </div>
+      <div class="history-summary" id="history-summary"></div>
+      <div class="history-list" id="history-list">
+        <div class="empty-state">
+          <div style="font-size:48px">📭</div>
+          <p>No workouts logged yet.</p>
+          <span>Complete a session to see your history here.</span>
         </div>
+      </div>
+    </div>
+  </section>
 
-        <div class="about-for-grid">
-          <div class="afg-card">
-            <span>🏠</span>
-            <h4>Home Users</h4>
-            <p>Everything you need is your body weight and a phone. No equipment required.</p>
-          </div>
-          <div class="afg-card">
-            <span>🔒</span>
-            <h4>Complete Privacy</h4>
-            <p>Your camera never leaves your device. All processing happens locally — no uploads.</p>
-          </div>
-          <div class="afg-card">
-            <span>💰</span>
-            <h4>No Gym Cost</h4>
-            <p>Professional-quality coaching without the gym membership or personal trainer fees.</p>
-          </div>
-          <div class="afg-card">
-            <span>🤫</span>
-            <h4>For Introverts</h4>
-            <p>Train on your schedule, in your space, without social pressure or judgment.</p>
-          </div>
+  <!-- ─── ABOUT SECTION ─── -->
+  <section id="section-about" class="section hidden">
+    <div class="section-inner about-inner">
+      <div class="about-hero">
+        <div class="section-eyebrow">Our Mission</div>
+        <h2 class="section-title">Fitness Without Barriers</h2>
+        <p class="about-intro">FitAI was built for the people who were left behind by the fitness industry — those who can't afford gym memberships, who prefer privacy, or who simply don't know where to start.</p>
+      </div>
+      <div class="about-grid">
+        <div class="about-block problem">
+          <div class="ab-icon">❌</div>
+          <h4>The Problem</h4>
+          <p>Most fitness apps assume you have a gym, a trainer, and expensive equipment. Beginners get no guidance. Women face safety concerns. Introverts feel unwelcome in gym environments. Everyone struggles with consistency without accountability.</p>
         </div>
-
-        <div class="about-tech">
-          <h3>How It Works</h3>
-          <div class="at-steps">
-            <div class="at-step"><span class="ats-num">1</span><p>Camera detects your body landmarks using MediaPipe Pose AI</p></div>
-            <div class="at-step"><span class="ats-num">2</span><p>Joint angles are calculated in real-time (shoulder, elbow, hip, knee)</p></div>
-            <div class="at-step"><span class="ats-num">3</span><p>Reps are counted only when you complete a full range of motion</p></div>
-            <div class="at-step"><span class="ats-num">4</span><p>Voice and visual feedback corrects your form instantly</p></div>
-          </div>
+        <div class="about-block solution">
+          <div class="ab-icon">✅</div>
+          <h4>The Solution</h4>
+          <p>FitAI brings professional-grade tracking into your living room. Our AI camera system guides your form in real time, while flexible workout plans adapt to your space, time, and fitness level. No gym. No judgment. Just progress.</p>
         </div>
+      </div>
+      <div class="target-users">
+        <h4>Built For</h4>
+        <div class="user-cards">
+          <div class="user-card">🙍‍♀️<span>Women seeking safe, private fitness</span></div>
+          <div class="user-card">🧘‍♂️<span>Introverts who prefer home training</span></div>
+          <div class="user-card">💰<span>Budget-conscious fitness seekers</span></div>
+          <div class="user-card">🏠<span>People with limited space or time</span></div>
+          <div class="user-card">🔰<span>Complete beginners needing guidance</span></div>
+          <div class="user-card">⚡<span>Anyone wanting quick effective workouts</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
 
-        <div class="about-team">
-          <h3>Developer</h3>
-          <div class="dev-card">
-            <div class="dc-av">V</div>
-            <div class="dc-info">
-              <h4>Vanga Manoj</h4>
-              <p>Developer</p>
-              <a href="mailto:vangamanoj936@gmail.com" class="dc-email">vangamanoj936@gmail.com</a>
-            </div>
-            <div class="dc-links">
-              <a href="https://github.com/VANGAMANOJ" target="_blank" rel="noopener" class="dcl-btn" title="GitHub">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
-              </a>
-              <a href="https://linkedin.com/in/vanga-manoj" target="_blank" rel="noopener" class="dcl-btn" title="LinkedIn">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
-              </a>
-            </div>
+  <!-- ─── TEAM SECTION ─── -->
+  <section id="section-team" class="section hidden">
+    <div class="section-inner">
+      <div class="section-header">
+        <div class="section-eyebrow">The Builder</div>
+        <h2 class="section-title">Meet the Team</h2>
+      </div>
+      <div class="team-center">
+        <div class="team-card">
+          <div class="team-avatar">VM</div>
+          <div class="team-name">Vanga Manoj</div>
+          <div class="team-role">Founder & Developer</div>
+          <p class="team-bio">Built FitAI to make quality fitness guidance accessible to everyone — regardless of budget, location, or gym access. Passionate about using AI to solve real human problems.</p>
+          <div class="team-links">
+            <a href="mailto:vangamanoj936@gmail.com" target="_blank" class="team-link email" title="Email">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+              Email
+            </a>
+            <a href="https://github.com/VANGAMANOJ" target="_blank" class="team-link github" title="GitHub">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/></svg>
+              GitHub
+            </a>
+            <a href="https://linkedin.com/in/vanga-manoj" target="_blank" class="team-link linkedin" title="LinkedIn">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+              LinkedIn
+            </a>
           </div>
         </div>
       </div>
     </div>
+  </section>
 
-  </main>
-</div>
+</div><!-- /main-app -->
 
-<!-- TOAST -->
-<div class="toast" id="toast"></div>
-
-<!-- MediaPipe via CDN -->
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/pose.js" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466862/camera_utils.js" crossorigin="anonymous"></script>
 <script src="script.js"></script>
 <script src="pdf.js"></script>
 </body>

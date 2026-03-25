@@ -1,1656 +1,830 @@
-/* ============================================================
-   FitHome — script.js
-   Real pose tracking via MediaPipe Pose
-   Angle-based rep counting, form correction, voice feedback
-   ============================================================ */
+/* ═══════════════════════════════════════════════════════════════
+   FitAI — script.js
+   All app logic: Profile, Navigation, Workout Plan,
+   Camera, Stats, History
+═══════════════════════════════════════════════════════════════ */
+
 'use strict';
 
-// ═══════════════════════════════════════════════════════════════
-// CONSTANTS & CONFIG
-// ═══════════════════════════════════════════════════════════════
-const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+/* ════════════════════════════════════════
+   DATA — GOALS
+════════════════════════════════════════ */
+const GOALS = [
+  { cat: 'Beginner & General', items: [
+    { id: 'beginner_fitness',  emoji: '🔰', label: 'Beginner Fitness'    },
+    { id: 'get_fit',           emoji: '💪', label: 'Get Fit'             },
+    { id: 'build_habit',       emoji: '📅', label: 'Build Habit'         },
+  ]},
+  { cat: 'Fat Loss', items: [
+    { id: 'lose_belly',        emoji: '🔥', label: 'Lose Belly Fat'      },
+    { id: 'full_body_fat',     emoji: '⚡', label: 'Full Body Fat Loss'  },
+    { id: 'weight_loss',       emoji: '⚖️', label: 'Weight Loss'         },
+    { id: 'fat_toning',        emoji: '✨', label: 'Fat Loss + Toning'   },
+  ]},
+  { cat: 'Muscle & Strength', items: [
+    { id: 'build_muscle',      emoji: '🏋️', label: 'Build Muscle'        },
+    { id: 'strength',          emoji: '💥', label: 'Strength Training'   },
+    { id: 'lean_muscle',       emoji: '🎯', label: 'Lean Muscle'         },
+    { id: 'upper_body',        emoji: '💪', label: 'Upper Body Strength' },
+    { id: 'lower_body',        emoji: '🦵', label: 'Lower Body Strength' },
+  ]},
+  { cat: 'Performance', items: [
+    { id: 'stamina',           emoji: '🏃', label: 'Stamina'             },
+    { id: 'cardio',            emoji: '❤️', label: 'Cardio Fitness'      },
+    { id: 'athletic',          emoji: '🏅', label: 'Athletic Performance'},
+    { id: 'core_strength',     emoji: '🧘', label: 'Core Strength'       },
+  ]},
+  { cat: 'Home Focus', items: [
+    { id: 'no_equipment',      emoji: '🏠', label: 'No Equipment'        },
+    { id: 'small_space',       emoji: '📐', label: 'Small Space Workout' },
+    { id: 'quick_workout',     emoji: '⏱️', label: 'Quick Workout 15–20m'},
+  ]},
+  { cat: 'Women & Safety', items: [
+    { id: 'women_fitness',     emoji: '👩', label: 'Women Fitness'       },
+    { id: 'low_impact',        emoji: '🌿', label: 'Low Impact Workout'  },
+    { id: 'posture',           emoji: '🧍', label: 'Posture Correction'  },
+  ]},
+];
 
-// Day → workout mapping (0=Sunday)
-const DAY_WORKOUT = {
-  1: { focus: 'Chest & Triceps', exercises: ['Push-up', 'Dumbbell Fly', 'Tricep Dip', 'Incline Push-up', 'Diamond Push-up'] },
-  2: { focus: 'Back & Biceps',   exercises: ['Bicep Curl', 'Reverse Row', 'Superman Hold', 'Hammer Curl', 'Back Extension'] },
-  3: { focus: 'Shoulders',       exercises: ['Shoulder Press', 'Lateral Raise', 'Front Raise', 'Upright Row', 'Arm Circles'] },
-  4: { focus: 'Legs',            exercises: ['Squat', 'Lunge', 'Glute Bridge', 'Calf Raise', 'Step-up'] },
-  5: { focus: 'Cardio & Core',   exercises: ['High Knees', 'Jumping Jacks', 'Plank', 'Mountain Climber', 'Burpee'] },
-  6: { focus: 'Full Body',       exercises: ['Squat', 'Push-up', 'Lunge', 'Plank', 'Bicep Curl'] },
-  0: null, // Sunday = user choice
+/* ════════════════════════════════════════
+   DATA — WORKOUT PLAN
+════════════════════════════════════════ */
+const WEEK = [
+  { key: 'mon', label: 'Mon', name: 'Monday',    focus: 'Chest & Triceps',     rest: false },
+  { key: 'tue', label: 'Tue', name: 'Tuesday',   focus: 'Back & Biceps',       rest: false },
+  { key: 'wed', label: 'Wed', name: 'Wednesday', focus: 'Shoulders & Traps',   rest: false },
+  { key: 'thu', label: 'Thu', name: 'Thursday',  focus: 'Legs & Glutes',       rest: false },
+  { key: 'fri', label: 'Fri', name: 'Friday',    focus: 'Full Body Cardio',    rest: false },
+  { key: 'sat', label: 'Sat', name: 'Saturday',  focus: 'Core & Flexibility',  rest: false },
+  { key: 'sun', label: 'Sun', name: 'Sunday',    focus: 'Rest or Light Walk',  rest: true  },
+];
+
+const EXERCISES = {
+  'Chest & Triceps': [
+    { name: 'Push-ups',              detail: 'Full chest activation · no equipment', sets: 3 },
+    { name: 'Incline Push-ups',      detail: 'Upper chest focus · hands elevated',   sets: 3 },
+    { name: 'Tricep Dips',           detail: 'Chair or floor · tricep isolation',    sets: 3 },
+    { name: 'Diamond Push-ups',      detail: 'Close grip · tricep & inner chest',    sets: 3 },
+    { name: 'Wide Push-ups',         detail: 'Outer chest · full range of motion',   sets: 3 },
+  ],
+  'Back & Biceps': [
+    { name: 'Doorframe Rows',        detail: 'Body row · back width',                sets: 3 },
+    { name: 'Towel Bicep Curls',     detail: 'Resistance curl using towel',          sets: 3 },
+    { name: 'Superman Hold',         detail: 'Lower back · posterior chain',         sets: 3 },
+    { name: 'Reverse Snow Angels',   detail: 'Upper back & rear deltoids',           sets: 3 },
+    { name: 'Resistance Band Rows',  detail: 'Horizontal row · mid back',            sets: 3 },
+  ],
+  'Shoulders & Traps': [
+    { name: 'Pike Push-ups',         detail: 'Shoulder press alternative',           sets: 3 },
+    { name: 'Lateral Raises',        detail: 'Light weight or resistance band',      sets: 3 },
+    { name: 'Front Raises',          detail: 'Anterior deltoid · controlled',        sets: 3 },
+    { name: 'Shoulder Circles',      detail: 'Mobility warmup · full rotation',      sets: 2 },
+    { name: 'Shrugs',                detail: 'Trap isolation · hold at top',         sets: 3 },
+  ],
+  'Legs & Glutes': [
+    { name: 'Squats',                detail: 'Full depth · feet shoulder width',     sets: 4 },
+    { name: 'Lunges',                detail: 'Alternate legs · full stride',         sets: 3 },
+    { name: 'Glute Bridges',         detail: 'Squeeze at top · hip thrust',          sets: 3 },
+    { name: 'Wall Sit',              detail: '45–60 second hold · quads burn',       sets: 3 },
+    { name: 'Calf Raises',           detail: 'Full range · stand on edge if able',   sets: 3 },
+  ],
+  'Full Body Cardio': [
+    { name: 'Jumping Jacks',         detail: '60 seconds · get heart rate up',       sets: 3 },
+    { name: 'Mountain Climbers',     detail: 'Core + cardio · quick pace',           sets: 3 },
+    { name: 'Burpees',               detail: 'Full body · explosive movement',       sets: 3 },
+    { name: 'High Knees',            detail: 'Running in place · arms pumping',      sets: 3 },
+    { name: 'Jump Squats',           detail: 'Power · land softly',                  sets: 3 },
+  ],
+  'Core & Flexibility': [
+    { name: 'Plank',                 detail: '30–60 second hold · tight core',       sets: 3 },
+    { name: 'Crunches',              detail: 'Controlled · no neck pulling',         sets: 3 },
+    { name: 'Leg Raises',            detail: 'Lower abs · slow descent',             sets: 3 },
+    { name: 'Russian Twists',        detail: 'Obliques · seated rotation',           sets: 3 },
+    { name: 'Child's Pose Stretch',  detail: '60 second stretch · recovery',         sets: 2 },
+  ],
 };
 
-// MediaPipe landmark indices
-const MP = {
-  NOSE:0, L_EYE_IN:1, L_EYE:2, L_EYE_OUT:3,
-  R_EYE_IN:4, R_EYE:5, R_EYE_OUT:6,
-  L_EAR:7, R_EAR:8, MOUTH_L:9, MOUTH_R:10,
-  L_SHOULDER:11, R_SHOULDER:12,
-  L_ELBOW:13, R_ELBOW:14,
-  L_WRIST:15, R_WRIST:16,
-  L_PINKY:17, R_PINKY:18,
-  L_INDEX:19, R_INDEX:20,
-  L_THUMB:21, R_THUMB:22,
-  L_HIP:23, R_HIP:24,
-  L_KNEE:25, R_KNEE:26,
-  L_ANKLE:27, R_ANKLE:28,
-  L_HEEL:29, R_HEEL:30,
-  L_FOOT:31, R_FOOT:32,
-};
-
-// Exercise tracking configs
-const EX_CONFIG = {
-  'Bicep Curl': {
-    icon: '💪', muscle: 'Biceps · Arms',
-    repsTarget: 12, sets: 3, restSec: 45,
-    track: trackBicepCurl,
-    instruction: 'Stand facing camera. Keep elbows tight to your sides. Curl both arms up fully, then lower completely.',
-    calibrationNote: 'Stand with arms fully extended at sides. Hold 3 seconds.',
-  },
-  'Squat': {
-    icon: '🦵', muscle: 'Quads · Glutes · Legs',
-    repsTarget: 15, sets: 3, restSec: 60,
-    track: trackSquat,
-    instruction: 'Stand shoulder-width. Lower until thighs are parallel to floor. Keep back straight.',
-    calibrationNote: 'Stand upright with arms at sides. Hold 3 seconds.',
-  },
-  'Push-up': {
-    icon: '🤜', muscle: 'Chest · Triceps · Shoulders',
-    repsTarget: 10, sets: 3, restSec: 60,
-    track: trackPushup,
-    instruction: 'Place phone sideways so full body is visible. Lower chest to floor, then push up fully.',
-    calibrationNote: 'Get into high plank. Hold 3 seconds.',
-  },
-  'Lunge': {
-    icon: '🏃', muscle: 'Quads · Glutes · Balance',
-    repsTarget: 10, sets: 3, restSec: 45,
-    track: trackLunge,
-    instruction: 'Step forward with one leg, lower back knee toward floor. Alternate sides.',
-    calibrationNote: 'Stand upright, feet together. Hold 3 seconds.',
-  },
-  'Shoulder Press': {
-    icon: '🙌', muscle: 'Deltoids · Traps',
-    repsTarget: 12, sets: 3, restSec: 45,
-    track: trackShoulderPress,
-    instruction: 'Raise arms overhead fully, then lower to shoulder height. Keep core tight.',
-    calibrationNote: 'Stand with arms at shoulders, elbows bent. Hold 3 seconds.',
-  },
-  'Plank': {
-    icon: '🧘', muscle: 'Core · Abs · Shoulders',
-    repsTarget: 30, sets: 3, restSec: 30,
-    isTimer: true,
-    track: trackPlank,
-    instruction: 'Hold body straight as a plank. Keep hips level. Breathe steadily.',
-    calibrationNote: 'Get into plank position. Hold 3 seconds.',
-  },
-  'High Knees': {
-    icon: '🔥', muscle: 'Cardio · Core',
-    repsTarget: 20, sets: 3, restSec: 30,
-    track: trackHighKnees,
-    instruction: 'Run in place, lifting knees to waist height each rep.',
-    calibrationNote: 'Stand upright. Hold 3 seconds.',
-  },
-  'Glute Bridge': {
-    icon: '🍑', muscle: 'Glutes · Hamstrings',
-    repsTarget: 15, sets: 3, restSec: 45,
-    track: trackGluteBridge,
-    instruction: 'Lie on back, feet flat. Push hips up until straight, hold 1s, lower back.',
-    calibrationNote: 'Lie flat on back. Hold 3 seconds.',
-  },
-  'Jumping Jacks': {
-    icon: '⚡', muscle: 'Full Body · Cardio',
-    repsTarget: 20, sets: 3, restSec: 30,
-    track: trackJumpingJacks,
-    instruction: 'Jump feet apart and arms overhead simultaneously. Return and repeat.',
-    calibrationNote: 'Stand upright, arms at sides. Hold 3 seconds.',
-  },
-  // Fallback for any unrecognized exercise
-  'Mountain Climber': {
-    icon: '🧗', muscle: 'Core · Cardio',
-    repsTarget: 16, sets: 3, restSec: 30,
-    track: trackHighKnees,
-    instruction: 'High plank. Drive alternating knees to chest rapidly.',
-    calibrationNote: 'Get into high plank. Hold 3 seconds.',
-  },
-  'Lateral Raise': {
-    icon: '↔', muscle: 'Deltoids',
-    repsTarget: 12, sets: 3, restSec: 40,
-    track: trackShoulderPress,
-    instruction: 'Raise both arms out to the side up to shoulder height, then lower.',
-    calibrationNote: 'Stand with arms at sides. Hold 3 seconds.',
-  },
-  'Front Raise': {
-    icon: '⬆', muscle: 'Front Deltoids',
-    repsTarget: 12, sets: 3, restSec: 40,
-    track: trackShoulderPress,
-    instruction: 'Raise both arms forward to shoulder height, then lower.',
-    calibrationNote: 'Stand with arms at sides. Hold 3 seconds.',
-  },
-  'Superman Hold': {
-    icon: '🦸', muscle: 'Lower Back · Glutes',
-    repsTarget: 10, sets: 3, restSec: 40,
-    track: trackGluteBridge,
-    instruction: 'Lie face down. Raise arms and legs off floor simultaneously. Hold 2s, lower.',
-    calibrationNote: 'Lie face down flat. Hold 3 seconds.',
-  },
-  'Hammer Curl': {
-    icon: '🔨', muscle: 'Biceps · Brachialis',
-    repsTarget: 12, sets: 3, restSec: 40,
-    track: trackBicepCurl,
-    instruction: 'Same as bicep curl but palms face each other.',
-    calibrationNote: 'Stand with arms at sides. Hold 3 seconds.',
-  },
-  'Tricep Dip': {
-    icon: '💎', muscle: 'Triceps',
-    repsTarget: 10, sets: 3, restSec: 45,
-    track: trackPushup,
-    instruction: 'Use a chair. Lower body by bending elbows, then press back up.',
-    calibrationNote: 'Arms straight, body off chair. Hold 3 seconds.',
-  },
-  'Diamond Push-up': {
-    icon: '💎', muscle: 'Triceps · Chest',
-    repsTarget: 10, sets: 3, restSec: 45,
-    track: trackPushup,
-    instruction: 'Hands form a diamond shape below chest. Lower and push up.',
-    calibrationNote: 'High plank with diamond hands. Hold 3 seconds.',
-  },
-  'Incline Push-up': {
-    icon: '📐', muscle: 'Chest · Shoulders',
-    repsTarget: 12, sets: 3, restSec: 45,
-    track: trackPushup,
-    instruction: 'Hands on elevated surface (chair/wall). Lower chest to surface.',
-    calibrationNote: 'Incline plank position. Hold 3 seconds.',
-  },
-  'Reverse Row': {
-    icon: '🔙', muscle: 'Back · Biceps',
-    repsTarget: 10, sets: 3, restSec: 45,
-    track: trackBicepCurl,
-    instruction: 'Under a table. Row chest up to table edge, lower back.',
-    calibrationNote: 'Hang under table with arms straight. Hold 3 seconds.',
-  },
-  'Calf Raise': {
-    icon: '🦶', muscle: 'Calves',
-    repsTarget: 20, sets: 3, restSec: 30,
-    track: trackCalfRaise,
-    instruction: 'Rise up onto toes fully, then lower heels back down.',
-    calibrationNote: 'Stand flat-footed. Hold 3 seconds.',
-  },
-  'Step-up': {
-    icon: '🪜', muscle: 'Quads · Glutes',
-    repsTarget: 12, sets: 3, restSec: 45,
-    track: trackSquat,
-    instruction: 'Step up onto a chair one foot at a time, then step back down.',
-    calibrationNote: 'Stand in front of step. Hold 3 seconds.',
-  },
-  'Upright Row': {
-    icon: '⬆', muscle: 'Traps · Shoulders',
-    repsTarget: 12, sets: 3, restSec: 45,
-    track: trackShoulderPress,
-    instruction: 'Pull hands up to chin height with elbows flaring out. Lower slowly.',
-    calibrationNote: 'Stand with arms at sides. Hold 3 seconds.',
-  },
-  'Arm Circles': {
-    icon: '🔄', muscle: 'Shoulders · Warm-up',
-    repsTarget: 15, sets: 2, restSec: 20,
-    track: trackJumpingJacks,
-    instruction: 'Extend arms and make large circles forward, then backward.',
-    calibrationNote: 'Stand with arms extended to sides. Hold 3 seconds.',
-  },
-  'Back Extension': {
-    icon: '🔙', muscle: 'Lower Back',
-    repsTarget: 12, sets: 3, restSec: 40,
-    track: trackGluteBridge,
-    instruction: 'Lie face down. Raise chest off floor, lower slowly.',
-    calibrationNote: 'Lie face down. Hold 3 seconds.',
-  },
-  'Burpee': {
-    icon: '💥', muscle: 'Full Body · Cardio',
-    repsTarget: 8, sets: 3, restSec: 60,
-    track: trackSquat,
-    instruction: 'Stand, drop to plank, push-up, jump feet in, jump up. Full sequence = 1 rep.',
-    calibrationNote: 'Stand upright. Hold 3 seconds.',
-  },
-};
-
-// ═══════════════════════════════════════════════════════════════
-// APP STATE
-// ═══════════════════════════════════════════════════════════════
-const S = {
+/* ════════════════════════════════════════
+   APP STATE
+════════════════════════════════════════ */
+const state = {
   profile: null,
-  theme: 'dark',
-  poseReady: false,
-  stream: null,
-  poseInstance: null,
-  camera: null,
-  selectedEx: null,
-  exConfig: null,
-  landmarks: null,
-
-  // Tracking state
-  angle: 0,
-  repState: 'up',      // state machine: 'up', 'down'
-  repCount: 0,
-  setCount: 0,
-  totalReps: 0,
-  sessionStart: null,
-  paused: false,
-
-  // Calibration
-  calibrated: false,
-  calibratingFrames: 0,
-  baselineAngle: 180,
-
-  // Form
-  formOk: true,
-  consecutiveFormFails: 0,
-
-  // Rest timer
-  restInterval: null,
-
-  // Voice
-  speechSynth: window.speechSynthesis,
-  lastSpoken: 0,
-  lastFeedbackMsg: '',
+  isGuest: false,
+  selectedDay: null,      // active day key
+  setsState: {},          // "day_exIdx" → count
+  history: [],
+  streak: 0,
+  selectedExercise: null,
 };
 
-// ═══════════════════════════════════════════════════════════════
-// DOM REFS
-// ═══════════════════════════════════════════════════════════════
-const $ = id => document.getElementById(id);
-const $$ = s => document.querySelectorAll(s);
+/* ════════════════════════════════════════
+   UTILITY
+════════════════════════════════════════ */
+function today() {
+  return ['sun','mon','tue','wed','thu','fri','sat'][new Date().getDay()];
+}
+function todayName() {
+  return WEEK.find(d => d.key === today());
+}
+function saveLocal(key, val) {
+  try { localStorage.setItem('fitai_' + key, JSON.stringify(val)); } catch(e) {}
+}
+function loadLocal(key) {
+  try { return JSON.parse(localStorage.getItem('fitai_' + key)); } catch(e) { return null; }
+}
+function showEl(id)  { document.getElementById(id)?.classList.remove('hidden'); }
+function hideEl(id)  { document.getElementById(id)?.classList.add('hidden'); }
+function getEl(id)   { return document.getElementById(id); }
 
-// ═══════════════════════════════════════════════════════════════
-// INIT
-// ═══════════════════════════════════════════════════════════════
-document.addEventListener('DOMContentLoaded', () => {
-  loadTheme();
-  loadProfile();
-  startLoadingSequence();
-});
+/* ════════════════════════════════════════
+   APP — ENTRY & INIT
+════════════════════════════════════════ */
+const App = {
 
-// ═══════════════════════════════════════════════════════════════
-// LOADING & POSE ENGINE SETUP
-// ═══════════════════════════════════════════════════════════════
-async function startLoadingSequence() {
-  const bar = $('loadProgress');
-  const status = $('loadStatus');
+  init() {
+    // Load persisted data
+    const saved = loadLocal('profile');
+    const hist  = loadLocal('history');
+    if (hist) state.history = hist;
+    state.streak = loadLocal('streak') || 0;
 
-  const steps = [
-    [20, 'Loading pose engine…'],
-    [45, 'Initializing MediaPipe…'],
-    [70, 'Preparing exercise data…'],
-    [90, 'Almost ready…'],
-    [100, 'Ready!'],
-  ];
+    if (saved) {
+      state.profile = saved;
+      App.launchApp(false);
+    }
+    // else: entry overlay stays visible
 
-  async function animStep(i) {
-    if (i >= steps.length) {
-      await delay(300);
-      finishLoading();
+    // Build goal grid for profile modal
+    App.buildGoalGrid();
+
+    // Navbar scroll effect
+    window.addEventListener('scroll', () => {
+      const nav = getEl('navbar');
+      nav?.classList.toggle('scrolled', window.scrollY > 20);
+    });
+  },
+
+  guestMode() {
+    state.isGuest = true;
+    state.profile = { name: 'Guest', goal: null, level: 'beginner', height: null, weight: null };
+    App.launchApp(true);
+  },
+
+  launchApp(guest) {
+    hideEl('entry-overlay');
+    showEl('main-app');
+    getEl('main-app').classList.remove('hidden');
+    App.updateUserChip();
+    App.nav('home', document.querySelector('[data-section="home"]'));
+    App.refreshHeroCard();
+    App.refreshHistorySummary();
+  },
+
+  updateUserChip() {
+    const chip = getEl('user-chip');
+    if (!chip) return;
+    const name = state.profile?.name || 'Guest';
+    chip.textContent = state.isGuest ? '👤 Guest' : `👤 ${name}`;
+  },
+
+  /* ── NAV ── */
+  nav(section, linkEl) {
+    // hide all sections
+    document.querySelectorAll('.section').forEach(s => {
+      s.classList.remove('active');
+      s.classList.add('hidden');
+    });
+    // show target
+    const target = getEl('section-' + section);
+    if (target) { target.classList.add('active'); target.classList.remove('hidden'); }
+
+    // update nav links
+    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+    if (linkEl) linkEl.classList.add('active');
+
+    // Close mobile menu
+    getEl('nav-links')?.classList.remove('open');
+
+    // Section-specific init
+    if (section === 'workout')      App.initWorkout();
+    if (section === 'camera')       App.initCameraSection();
+    if (section === 'history')      App.renderHistory();
+    if (section === 'profile-view') App.renderProfileView();
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    return false;
+  },
+
+  toggleMenu() {
+    getEl('nav-links')?.classList.toggle('open');
+  },
+
+  /* ── PROFILE MODAL ── */
+  openProfileSetup() {
+    getEl('profile-modal')?.classList.remove('hidden');
+    App.profileStep1();
+  },
+  closeProfileSetup() {
+    getEl('profile-modal')?.classList.add('hidden');
+  },
+  profileStep1() {
+    showEl('profile-step-1');
+    hideEl('profile-step-2');
+    // Pre-fill if exists
+    if (state.profile) {
+      const p = state.profile;
+      if (p.name   && p.name !== 'Guest') getEl('p-name').value = p.name;
+      if (p.age)    getEl('p-age').value    = p.age;
+      if (p.height) getEl('p-height').value = p.height;
+      if (p.weight) getEl('p-weight').value = p.weight;
+    }
+  },
+  profileStep2() {
+    const name = getEl('p-name')?.value.trim();
+    if (!name) { alert('Please enter your name.'); return; }
+    hideEl('profile-step-1');
+    showEl('profile-step-2');
+  },
+  profileStep1() {
+    showEl('profile-step-1');
+    hideEl('profile-step-2');
+  },
+
+  selectPill(groupId, btn) {
+    document.querySelectorAll(`#${groupId} .pill`).forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+  },
+
+  buildGoalGrid() {
+    const grid = getEl('goal-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    GOALS.forEach(cat => {
+      const catLabel = document.createElement('div');
+      catLabel.className = 'goal-category-label';
+      catLabel.textContent = cat.cat;
+      grid.appendChild(catLabel);
+      cat.items.forEach(g => {
+        const card = document.createElement('div');
+        card.className = 'goal-card';
+        card.dataset.id = g.id;
+        card.innerHTML = `<span style="font-size:18px">${g.emoji}</span> ${g.label}`;
+        card.onclick = () => {
+          document.querySelectorAll('.goal-card').forEach(c => c.classList.remove('selected'));
+          card.classList.add('selected');
+          state._selectedGoal = g.id;
+          state._selectedGoalLabel = g.label;
+        };
+        grid.appendChild(card);
+      });
+    });
+  },
+
+  saveProfile() {
+    const name   = getEl('p-name')?.value.trim() || 'User';
+    const age    = getEl('p-age')?.value;
+    const height = getEl('p-height')?.value;
+    const weight = getEl('p-weight')?.value;
+    const gender = document.querySelector('#gender-select .pill.active')?.dataset.val || 'other';
+    const level  = document.querySelector('#level-select .pill.active')?.dataset.val || 'beginner';
+    const goal   = state._selectedGoal || null;
+    const goalLabel = state._selectedGoalLabel || 'General Fitness';
+
+    if (!goal) { alert('Please select a goal.'); return; }
+
+    state.profile = { name, age, height, weight, gender, level, goal, goalLabel };
+    state.isGuest = false;
+    saveLocal('profile', state.profile);
+
+    App.closeProfileSetup();
+    App.launchApp(false);
+    hideEl('entry-overlay');
+    showEl('main-app');
+    getEl('main-app')?.classList.remove('hidden');
+  },
+
+  /* ── HERO CARD ── */
+  refreshHeroCard() {
+    const todayDay = todayName();
+    if (!todayDay) return;
+    getEl('hero-title') && (getEl('hero-title').innerHTML = state.profile?.name && !state.isGuest
+      ? `Hey, ${state.profile.name}.<br/><em>Let's Train.</em>`
+      : 'Train at Home.<br/><em>Like a Pro.</em>'
+    );
+    getEl('today-focus-label') && (getEl('today-focus-label').textContent = todayDay.focus);
+    const exList = EXERCISES[todayDay.focus];
+    const exContainer = getEl('today-exercises');
+    if (exContainer && exList) {
+      exContainer.innerHTML = exList.slice(0,3).map(e =>
+        `<div class="hc-ex"><div class="hc-ex-dot"></div>${e.name}</div>`
+      ).join('');
+    }
+    const streakEl = getEl('hero-streak');
+    if (streakEl) streakEl.textContent = state.streak;
+  },
+
+  /* ── PROFILE VIEW ── */
+  renderProfileView() {
+    const p = state.profile || {};
+    const first = (p.name || 'G')[0].toUpperCase();
+    getEl('pcb-avatar') && (getEl('pcb-avatar').textContent = first);
+    getEl('pcb-name')   && (getEl('pcb-name').textContent   = p.name || 'Guest');
+    getEl('pcb-goal')   && (getEl('pcb-goal').textContent   = p.goalLabel || 'No goal set');
+    getEl('pd-height')  && (getEl('pd-height').textContent  = p.height ? p.height + ' cm' : '—');
+    getEl('pd-weight')  && (getEl('pd-weight').textContent  = p.weight ? p.weight + ' kg' : '—');
+    getEl('pd-level')   && (getEl('pd-level').textContent   = p.level || '—');
+    getEl('pd-gender')  && (getEl('pd-gender').textContent  = p.gender || '—');
+    getEl('pd-mode')    && (getEl('pd-mode').textContent    = state.isGuest ? 'Guest' : 'Profile');
+    getEl('pcb-streak') && (getEl('pcb-streak').textContent = state.streak);
+    getEl('pcb-sessions') && (getEl('pcb-sessions').textContent = state.history.length);
+    const cals = state.history.reduce((a, h) => a + (h.calories || 0), 0);
+    getEl('pcb-calories') && (getEl('pcb-calories').textContent = cals);
+  },
+
+  /* ── HISTORY ── */
+  renderHistory() {
+    App.refreshHistorySummary();
+    const list = getEl('history-list');
+    if (!list) return;
+    if (state.history.length === 0) {
+      list.innerHTML = `<div class="empty-state"><div style="font-size:48px">📭</div><p>No workouts logged yet.</p><span>Complete a session and log a set to track your progress.</span></div>`;
       return;
     }
-    bar.style.width = steps[i][0] + '%';
-    status.textContent = steps[i][1];
-    await delay(400);
-    animStep(i + 1);
-  }
-
-  // Try to init MediaPipe in background
-  try {
-    await initPoseEngine();
-    S.poseReady = true;
-  } catch (e) {
-    console.warn('MediaPipe not loaded, using fallback mode:', e);
-    S.poseReady = false;
-  }
-
-  animStep(0);
-}
-
-async function initPoseEngine() {
-  if (typeof Pose === 'undefined') throw new Error('Pose not loaded');
-
-  S.poseInstance = new Pose({
-    locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/${file}`,
-  });
-
-  S.poseInstance.setOptions({
-    modelComplexity: 1,
-    smoothLandmarks: true,
-    enableSegmentation: false,
-    smoothSegmentation: false,
-    minDetectionConfidence: 0.55,
-    minTrackingConfidence: 0.55,
-  });
-
-  S.poseInstance.onResults(onPoseResults);
-  await S.poseInstance.initialize();
-}
-
-function finishLoading() {
-  $('loadingScreen').classList.add('hidden');
-
-  if (S.profile) {
-    showMainApp();
-  } else {
-    showOnboarding();
-  }
-}
-
-function showOnboarding() {
-  $('onboardScreen').classList.remove('hidden');
-  bindOnboarding();
-}
-
-function showMainApp() {
-  $('mainApp').classList.remove('hidden');
-  initMainApp();
-}
-
-// ═══════════════════════════════════════════════════════════════
-// ONBOARDING
-// ═══════════════════════════════════════════════════════════════
-function bindOnboarding() {
-  let selectedGoal = null;
-
-  $$('#obGoalGrid .goal-opt').forEach(btn => {
-    btn.addEventListener('click', () => {
-      $$('#obGoalGrid .goal-opt').forEach(b => b.classList.remove('selected'));
-      btn.classList.add('selected');
-      selectedGoal = btn.dataset.goal;
-    });
-  });
-
-  $('btnStartJourney').addEventListener('click', () => {
-    const name = $('ob-name').value.trim();
-    if (!name) { toast('Please enter your name'); return; }
-    if (!selectedGoal) { toast('Please select a goal'); return; }
-
-    S.profile = {
-      name,
-      age: $('ob-age').value || '',
-      weight: $('ob-weight').value || '',
-      height: $('ob-height').value || '',
-      goal: selectedGoal,
-      goalLabel: $$('#obGoalGrid .goal-opt.selected')[0]?.textContent || selectedGoal,
-    };
-
-    localStorage.setItem('fh_profile', JSON.stringify(S.profile));
-    $('onboardScreen').classList.add('hidden');
-    showMainApp();
-    toast(`Welcome, ${name}! 🎉`);
-  });
-}
-
-// ═══════════════════════════════════════════════════════════════
-// LOAD PROFILE & THEME
-// ═══════════════════════════════════════════════════════════════
-function loadProfile() {
-  try {
-    const raw = localStorage.getItem('fh_profile');
-    if (raw) S.profile = JSON.parse(raw);
-  } catch { S.profile = null; }
-}
-
-function loadTheme() {
-  const t = localStorage.getItem('fh_theme') || 'dark';
-  S.theme = t;
-  document.documentElement.setAttribute('data-theme', t);
-  const tog = $('themeToggle');
-  if (tog) tog.checked = (t === 'light');
-}
-
-// ═══════════════════════════════════════════════════════════════
-// MAIN APP INIT
-// ═══════════════════════════════════════════════════════════════
-function initMainApp() {
-  updateTopbar();
-  bindNav();
-  bindTheme();
-  setupTodayWorkout();
-  bindProfile();
-  bindHistory();
-  renderHistory();
-}
-
-function updateTopbar() {
-  if (!S.profile) return;
-  const name = S.profile.name.split(' ')[0];
-  $('userGreet').textContent = `Hi, ${name}`;
-  $('dpName').textContent = S.profile.name;
-  $('dpGoal').textContent = S.profile.goalLabel || S.profile.goal || '—';
-  $('dpAvatar').textContent = name.charAt(0).toUpperCase();
-
-  const day = new Date().getDay();
-  const dayName = DAYS[day];
-  const w = DAY_WORKOUT[day];
-  const label = w ? w.focus : (day === 0 ? 'Your Day' : '—');
-  $('todayPill').textContent = `${dayName}: ${label}`;
-}
-
-// ═══════════════════════════════════════════════════════════════
-// NAVIGATION
-// ═══════════════════════════════════════════════════════════════
-function bindNav() {
-  $('menuBtn').addEventListener('click', toggleDrawer);
-  $('drawerOverlay').addEventListener('click', closeDrawer);
-
-  $$('.dl-link').forEach(link => {
-    link.addEventListener('click', e => {
-      e.preventDefault();
-      showPage(link.dataset.page);
-      closeDrawer();
-    });
-  });
-
-  $('btnExportPDF').addEventListener('click', () => {
-    closeDrawer();
-    if (typeof generatePDF === 'function') {
-      generatePDF(S.profile, DAY_WORKOUT, EX_CONFIG);
-    } else toast('PDF module not ready');
-  });
-}
-
-function toggleDrawer() {
-  const open = $('sideDrawer').classList.toggle('open');
-  $('drawerOverlay').classList.toggle('open', open);
-  $('menuBtn').classList.toggle('open', open);
-}
-
-function closeDrawer() {
-  $('sideDrawer').classList.remove('open');
-  $('drawerOverlay').classList.remove('open');
-  $('menuBtn').classList.remove('open');
-}
-
-function showPage(name) {
-  $$('.page').forEach(p => p.classList.remove('active'));
-  const target = $(`page-${name}`);
-  if (target) target.classList.add('active');
-
-  $$('.dl-link').forEach(l => l.classList.toggle('active', l.dataset.page === name));
-}
-
-// ═══════════════════════════════════════════════════════════════
-// THEME TOGGLE
-// ═══════════════════════════════════════════════════════════════
-function bindTheme() {
-  const tog = $('themeToggle');
-  if (!tog) return;
-  tog.addEventListener('change', () => {
-    S.theme = tog.checked ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', S.theme);
-    localStorage.setItem('fh_theme', S.theme);
-  });
-}
-
-// ═══════════════════════════════════════════════════════════════
-// TODAY'S WORKOUT SETUP
-// ═══════════════════════════════════════════════════════════════
-function setupTodayWorkout() {
-  const day = new Date().getDay();
-  const dayName = DAYS[day];
-  $('thDay').textContent = dayName;
-
-  if (day === 0) {
-    // Sunday — user choice
-    $('sundayChoice').classList.remove('hidden');
-    $('exercisePicker').classList.add('hidden');
-    $('todayHeader').querySelector('#thFocus').textContent = 'Rest or Train?';
-
-    $('sbRest').addEventListener('click', () => {
-      $('sundayChoice').classList.add('hidden');
-      $('restScreen').classList.remove('hidden');
-    });
-
-    $('sbWorkout').addEventListener('click', () => {
-      $('sundayChoice').classList.add('hidden');
-      loadWorkoutForDay(5); // Saturday's full body workout
-    });
-    return;
-  }
-
-  loadWorkoutForDay(day);
-}
-
-function loadWorkoutForDay(day) {
-  const w = DAY_WORKOUT[day] || DAY_WORKOUT[5];
-  $('thFocus').textContent = w.focus;
-  $('thExCount').textContent = `${w.exercises.length} exercises`;
-
-  const totalRepsEst = w.exercises.reduce((acc, name) => {
-    const c = EX_CONFIG[name];
-    return acc + (c ? (c.repsTarget * c.sets) : 30);
-  }, 0);
-
-  $('thDuration').textContent = `~${Math.round(totalRepsEst / 8)} min`;
-  $('thGoalTag').textContent = S.profile?.goalLabel || '—';
-
-  renderExerciseList(w.exercises);
-}
-
-function getExerciseDetails(name) {
-  if (EX_CONFIG[name]) return EX_CONFIG[name];
-  // Default fallback
-  return {
-    icon: '🏋', muscle: 'Full Body',
-    repsTarget: 12, sets: 3, restSec: 45,
-    track: trackBicepCurl,
-    instruction: `Perform ${name} with controlled movement.`,
-    calibrationNote: 'Stand upright. Hold 3 seconds.',
-  };
-}
-
-function renderExerciseList(exercises) {
-  const container = $('exCards');
-  container.innerHTML = '';
-
-  exercises.forEach(name => {
-    const config = getExerciseDetails(name);
-    const repsLabel = config.isTimer ? `${config.repsTarget}s hold` : `${config.repsTarget} reps`;
-
-    const card = document.createElement('div');
-    card.className = 'ex-card';
-    card.innerHTML = `
-      <div class="ex-card-icon">${config.icon}</div>
-      <div class="ex-card-info">
-        <div class="ec-name">${name}</div>
-        <div class="ec-meta">${config.muscle} · ${repsLabel} × ${config.sets} sets</div>
+    list.innerHTML = [...state.history].reverse().map(h => `
+      <div class="history-item">
+        <div class="hi-date">${h.date}</div>
+        <div class="hi-info">
+          <div class="hi-day">${h.day || 'Workout'}</div>
+          <div class="hi-meta">${h.exercise || '—'} · ${h.sets || 0} sets</div>
+        </div>
+        <div class="hi-stats">
+          <div class="hi-stat"><strong>${h.reps || 0}</strong><span>Reps</span></div>
+          <div class="hi-stat"><strong>${h.calories || 0}</strong><span>Cal</span></div>
+          <div class="hi-stat"><strong>${h.duration || '—'}</strong><span>Min</span></div>
+        </div>
       </div>
-      <div class="ex-card-arrow">›</div>`;
+    `).join('');
+  },
 
-    card.addEventListener('click', () => selectExercise(name));
-    container.appendChild(card);
-  });
-}
+  refreshHistorySummary() {
+    const el = getEl('history-summary');
+    if (!el) return;
+    const total = state.history.length;
+    const cals  = state.history.reduce((a, h) => a + (h.calories || 0), 0);
+    const reps  = state.history.reduce((a, h) => a + (h.reps || 0), 0);
+    el.innerHTML = `
+      <div class="hs-card"><div class="hs-num">${state.streak}</div><div class="hs-label">Day Streak</div></div>
+      <div class="hs-card"><div class="hs-num">${total}</div><div class="hs-label">Sessions</div></div>
+      <div class="hs-card"><div class="hs-num">${cals}</div><div class="hs-label">Calories</div></div>
+      <div class="hs-card"><div class="hs-num">${reps}</div><div class="hs-label">Total Reps</div></div>
+    `;
+  },
+};
 
-// ═══════════════════════════════════════════════════════════════
-// SELECT & START EXERCISE
-// ═══════════════════════════════════════════════════════════════
-function selectExercise(name) {
-  const config = getExerciseDetails(name);
-  S.selectedEx = name;
-  S.exConfig = config;
+/* ════════════════════════════════════════
+   WORKOUT PLAN
+════════════════════════════════════════ */
+App.initWorkout = function() {
+  const strip = getEl('week-strip');
+  if (!strip) return;
+  const td = today();
 
-  // Reset state
-  S.repCount = 0;
-  S.setCount = 0;
-  S.totalReps = 0;
-  S.repState = 'up';
-  S.calibrated = false;
-  S.paused = false;
-  S.sessionStart = null;
-  S.consecutiveFormFails = 0;
+  // Default selected day = today
+  if (!state.selectedDay) state.selectedDay = td;
 
-  // Update UI
-  $('exercisePicker').classList.add('hidden');
-  $('activeWorkout').classList.remove('hidden');
-  $('awName').textContent = name;
-  $('setBadge').textContent = `Set 1/${config.sets}`;
-  $('repsTarget').textContent = config.isTimer
-    ? `Hold ${config.repsTarget} seconds`
-    : `Target: ${config.repsTarget} reps`;
+  // Plan desc
+  const pd = getEl('plan-desc');
+  if (pd && state.profile?.goalLabel) pd.textContent = `Goal: ${state.profile.goalLabel}`;
 
-  $('scReps').textContent = '0';
-  $('scAngle').textContent = '—°';
-  $('scSets').textContent = `0/${config.sets}`;
+  strip.innerHTML = WEEK.map((d, i) => {
+    const isToday  = d.key === td;
+    const isActive = d.key === state.selectedDay;
+    return `
+      <button class="week-day-btn ${isActive ? 'active' : ''} ${isToday ? 'today' : ''}"
+        onclick="App.selectDay('${d.key}', this)">
+        ${isToday ? '<div class="wdb-today-dot"></div>' : ''}
+        <div class="wdb-label">${d.label}</div>
+        <div class="wdb-name">${d.focus.split(' ')[0]}</div>
+      </button>`;
+  }).join('');
 
-  $('calInstruction').textContent = config.instruction;
-  $('calStatus').textContent = 'Ready to start';
+  App.renderDayDetail(state.selectedDay);
+};
 
-  // Show calibration
-  $('calibrationBox').classList.remove('hidden');
-  $('trackingView').classList.add('hidden');
-  $('restTimerBox').classList.add('hidden');
-  $('workoutComplete').classList.add('hidden');
+App.selectDay = function(key, btn) {
+  state.selectedDay = key;
+  document.querySelectorAll('.week-day-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  App.renderDayDetail(key);
+};
 
-  $('btnCalibrate').disabled = false;
-  $('btnCalibrate').textContent = 'Enable Camera & Calibrate';
+App.renderDayDetail = function(key) {
+  const day = WEEK.find(d => d.key === key);
+  if (!day) return;
+  const detail = getEl('workout-detail');
+  if (!detail) return;
 
-  bindExerciseControls();
-}
-
-function bindExerciseControls() {
-  $('backToList').onclick = () => {
-    stopCamera();
-    $('exercisePicker').classList.remove('hidden');
-    $('activeWorkout').classList.add('hidden');
-    clearInterval(S.restInterval);
-  };
-
-  $('btnCalibrate').onclick = () => startCalibration();
-
-  $('btnPause').onclick = () => {
-    S.paused = !S.paused;
-    $('btnPause').textContent = S.paused ? '▶ Resume' : '⏸ Pause';
-    setFeedback(S.paused ? 'Paused — press Resume to continue' : 'Resumed', '⏸', false);
-  };
-
-  $('btnResetSet').onclick = () => {
-    S.repCount = 0;
-    S.repState = 'up';
-    $('scReps').textContent = '0';
-    setFeedback('Set reset — go again!', '↺', false);
-    toast('Set reset');
-  };
-
-  $('btnSkipRest').onclick = () => skipRest();
-  $('btnNextExercise').onclick = () => {
-    $('workoutComplete').classList.add('hidden');
-    $('exercisePicker').classList.remove('hidden');
-    $('activeWorkout').classList.add('hidden');
-    stopCamera();
-    toast('Select your next exercise!');
-  };
-  $('btnRepeatExercise').onclick = () => selectExercise(S.selectedEx);
-}
-
-// ═══════════════════════════════════════════════════════════════
-// CALIBRATION
-// ═══════════════════════════════════════════════════════════════
-async function startCalibration() {
-  $('btnCalibrate').disabled = true;
-  $('calStatus').textContent = 'Starting camera…';
-
-  const started = await startCamera();
-  if (!started) {
-    $('btnCalibrate').disabled = false;
-    $('calStatus').textContent = 'Camera failed. Please allow camera access.';
-    toast('Camera permission needed');
+  if (day.rest) {
+    detail.innerHTML = `
+      <div class="wd-rest">
+        <div class="wd-rest-icon">🛌</div>
+        <h3>Rest Day</h3>
+        <p>Active recovery — light stretching, a walk, or extra sleep. Recovery is training too.</p>
+      </div>`;
     return;
   }
 
-  $('calStatus').textContent = 'Get into start position…';
-  $('calCountdown').textContent = '';
+  const exList = EXERCISES[day.focus] || [];
+  const td = today();
 
-  // Wait for first pose detection
-  await waitForPose();
-
-  // 3-second countdown
-  for (let i = 3; i >= 1; i--) {
-    $('calCountdown').textContent = i;
-    $('calStatus').textContent = i === 3 ? 'Hold still…' : i === 2 ? 'Almost there…' : 'Calibrating!';
-    await delay(1000);
-  }
-
-  $('calCountdown').textContent = '✓';
-  $('calStatus').textContent = 'Calibrated!';
-
-  // Record baseline
-  if (S.landmarks) {
-    S.baselineAngle = S.exConfig.track(S.landmarks).angle;
-  }
-  S.calibrated = true;
-  S.sessionStart = Date.now();
-
-  await delay(400);
-
-  // Show tracking view
-  $('calibrationBox').classList.add('hidden');
-  $('trackingView').classList.remove('hidden');
-
-  setFeedback(S.exConfig.instruction, '💡', false);
-  speak('Start when ready');
-}
-
-async function waitForPose() {
-  return new Promise(resolve => {
-    let attempts = 0;
-    const check = setInterval(() => {
-      if (S.landmarks || attempts > 30) { clearInterval(check); resolve(); }
-      attempts++;
-    }, 100);
+  // Init sets state for this day
+  exList.forEach((ex, i) => {
+    const k = `${key}_${i}`;
+    if (!(k in state.setsState)) state.setsState[k] = ex.sets;
   });
-}
 
-// ═══════════════════════════════════════════════════════════════
-// CAMERA
-// ═══════════════════════════════════════════════════════════════
-async function startCamera() {
-  try {
-    // Prefer back camera on mobile
-    const constraints = {
-      video: {
-        facingMode: { ideal: 'environment' },
-        width: { ideal: 640 },
-        height: { ideal: 480 },
-      },
-    };
+  detail.innerHTML = `
+    <div class="wd-header">
+      <div class="wd-day-title">${day.name} — ${day.focus}</div>
+      <div class="wd-meta">
+        <div class="wd-badge">${exList.length} exercises</div>
+        <div class="wd-badge">${exList.reduce((a,e)=>a+e.sets,0)} sets total</div>
+        ${key === td ? '<div class="wd-badge goal-badge">Today</div>' : ''}
+        ${state.profile?.goalLabel ? `<div class="wd-badge goal-badge">🎯 ${state.profile.goalLabel}</div>` : ''}
+      </div>
+    </div>
+    <div class="exercises-list" id="ex-list-${key}"></div>
+  `;
 
-    S.stream = await navigator.mediaDevices.getUserMedia(constraints);
-    const vid = $('videoEl');
-    vid.srcObject = S.stream;
+  const container = getEl(`ex-list-${key}`);
+  exList.forEach((ex, i) => {
+    const k = `${key}_${i}`;
+    const row = document.createElement('div');
+    row.className = 'ex-row';
+    row.id = `ex-row-${k}`;
+    row.innerHTML = `
+      <div class="ex-num">${i+1}</div>
+      <div class="ex-info">
+        <div class="ex-name-text">${ex.name}</div>
+        <div class="ex-detail">${ex.detail}</div>
+      </div>
+      <div class="ex-sets-ctrl">
+        <div class="set-ctrl-wrap">
+          <button class="set-btn-small" onclick="App.adjustSets('${k}',-1,'${key}')" id="minus-${k}">−</button>
+          <div class="set-val-display" id="setval-${k}">${state.setsState[k]}</div>
+          <button class="set-btn-small" onclick="App.adjustSets('${k}',1,'${key}')" id="plus-${k}">+</button>
+        </div>
+        <span class="sets-label">sets</span>
+      </div>`;
+    container.appendChild(row);
+    App.refreshSetBtns(k);
+  });
+};
 
-    // Don't mirror if using back camera
-    const track = S.stream.getVideoTracks()[0];
-    const settings = track.getSettings();
-    if (settings.facingMode === 'environment') {
-      vid.style.transform = 'none';
-      $('canvasEl').style.transform = 'none';
+App.adjustSets = function(k, delta, dayKey) {
+  const cur = state.setsState[k] || 3;
+  const next = Math.min(6, Math.max(1, cur + delta));
+  state.setsState[k] = next;
+  const el = getEl(`setval-${k}`);
+  if (el) el.textContent = next;
+  App.refreshSetBtns(k);
+};
+
+App.refreshSetBtns = function(k) {
+  const v = state.setsState[k] || 3;
+  const minus = getEl(`minus-${k}`);
+  const plus  = getEl(`plus-${k}`);
+  if (minus) minus.disabled = v <= 1;
+  if (plus)  plus.disabled  = v >= 6;
+};
+
+/* ════════════════════════════════════════
+   CAMERA SYSTEM
+════════════════════════════════════════ */
+App.initCameraSection = function() {
+  // Populate exercise pills from today's exercises
+  const day = WEEK.find(d => d.key === (state.selectedDay || today()));
+  const exList = day ? (EXERCISES[day.focus] || []) : [];
+  const pillsContainer = getEl('exercise-pills');
+  if (pillsContainer) {
+    pillsContainer.innerHTML = exList.map((ex, i) =>
+      `<button class="ex-pill ${i === 0 ? 'selected' : ''}"
+        onclick="Camera.selectExercise(this, '${ex.name}')">${ex.name}</button>`
+    ).join('');
+    state.selectedExercise = exList[0]?.name || null;
+    getEl('stat-exercise') && (getEl('stat-exercise').textContent = state.selectedExercise || '—');
+  }
+};
+
+const Camera = {
+  stream: null,
+  isRunning: false,
+  reps: 0,
+  setsLogged: 0,
+  totalSets: 3,
+  lastAngle: null,
+  repState: 'up',       // for basic angle rep detection
+  simInterval: null,    // simulation interval for demo
+
+  selectExercise(btn, name) {
+    document.querySelectorAll('.ex-pill').forEach(p => p.classList.remove('selected'));
+    btn.classList.add('selected');
+    state.selectedExercise = name;
+    Camera.reps = 0;
+    Camera.repState = 'up';
+    getEl('stat-exercise') && (getEl('stat-exercise').textContent = name);
+    getEl('stat-reps')     && (getEl('stat-reps').textContent = '0');
+  },
+
+  async start() {
+    const viewport = getEl('camera-viewport');
+    const video    = getEl('workout-video');
+    const errBox   = getEl('cam-error');
+    const liveBadge= getEl('cam-live-badge');
+    const placeholder = getEl('cam-placeholder');
+    const btnStart = getEl('btn-start-cam');
+    const btnStop  = getEl('btn-stop-cam');
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      Camera.showError('Camera API not available. Please use HTTPS and a modern browser.');
+      return;
     }
 
-    await new Promise(r => { vid.onloadedmetadata = r; });
-    await vid.play();
+    // Try rear camera first (mobile), fallback to front
+    const constraints = [
+      { video: { facingMode: { exact: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false },
+      { video: { facingMode: 'user',        width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false },
+      { video: true, audio: false },
+    ];
 
-    // Fit canvas to video
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
+    let stream = null;
+    let usedRear = false;
 
-    // Start pose detection loop
-    if (S.poseReady && S.poseInstance) {
-      startPoseLoop();
-    } else {
-      // Fallback simulation mode
-      startSimulationMode();
-    }
-
-    return true;
-  } catch (e) {
-    console.error('Camera error:', e);
-    return false;
-  }
-}
-
-function stopCamera() {
-  if (S.stream) {
-    S.stream.getTracks().forEach(t => t.stop());
-    S.stream = null;
-  }
-  if (S.camera) {
-    S.camera.stop?.();
-    S.camera = null;
-  }
-  S.landmarks = null;
-  window.removeEventListener('resize', resizeCanvas);
-}
-
-function resizeCanvas() {
-  const vid = $('videoEl');
-  const canvas = $('canvasEl');
-  canvas.width = vid.offsetWidth;
-  canvas.height = vid.offsetHeight;
-}
-
-// ─── MEDIAPIPE POSE LOOP ─────────────────────────────────────
-function startPoseLoop() {
-  if (typeof Camera !== 'undefined') {
-    S.camera = new Camera($('videoEl'), {
-      onFrame: async () => {
-        if (S.paused) return;
-        if (S.poseInstance) {
-          await S.poseInstance.send({ image: $('videoEl') });
+    for (let i = 0; i < constraints.length; i++) {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia(constraints[i]);
+        usedRear = (i === 0);
+        break;
+      } catch(e) {
+        if (i === constraints.length - 1) {
+          let msg = 'Camera access denied.';
+          if (e.name === 'NotFoundError')    msg = 'No camera found on this device.';
+          if (e.name === 'NotAllowedError')  msg = 'Camera access denied. Please allow camera permission in browser settings.';
+          if (e.name === 'NotReadableError') msg = 'Camera is in use by another application.';
+          Camera.showError(msg);
+          return;
         }
-      },
-      width: 640,
-      height: 480,
-    });
-    S.camera.start();
-  } else {
-    // Manual loop fallback
-    const loop = async () => {
-      if (!S.stream) return;
-      if (!S.paused && S.poseInstance) {
-        await S.poseInstance.send({ image: $('videoEl') });
       }
-      requestAnimationFrame(loop);
-    };
-    loop();
-  }
-}
-
-function onPoseResults(results) {
-  const canvas = $('canvasEl');
-  const ctx = canvas.getContext('2d');
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  if (!results.poseLandmarks || results.poseLandmarks.length === 0) {
-    S.landmarks = null;
-    setFeedback('Move into camera view — keep full body visible', '👁', false);
-    return;
-  }
-
-  S.landmarks = results.poseLandmarks;
-
-  // Draw minimal tracking points
-  drawMinimalOverlay(ctx, results.poseLandmarks, canvas.width, canvas.height);
-
-  if (S.calibrated) {
-    processExercise();
-  }
-}
-
-// ─── SIMULATION MODE (fallback when MediaPipe unavailable) ───
-function startSimulationMode() {
-  let frame = 0;
-  const config = S.exConfig;
-
-  const loop = () => {
-    if (!S.stream) return;
-    frame++;
-
-    if (!S.paused && S.calibrated) {
-      // Simulate angle oscillation for demo
-      const t = frame * 0.04;
-      const simAngle = 100 + Math.sin(t) * 70;
-
-      S.angle = Math.round(simAngle);
-      $('abValue').textContent = S.angle + '°';
-      $('scAngle').textContent = S.angle + '°';
-
-      // Simulate rep counting
-      const result = {
-        angle: S.angle,
-        feedback: simAngle > 150 ? 'good' : simAngle < 60 ? 'good' : '',
-        formMsg: '',
-      };
-
-      updateRepState(result);
     }
 
-    requestAnimationFrame(loop);
-  };
-  loop();
-  setFeedback('Simulation mode — MediaPipe not loaded. Logic active!', '⚠', false);
-}
+    Camera.stream = stream;
+    Camera.isRunning = true;
 
-// ═══════════════════════════════════════════════════════════════
-// DRAW OVERLAY
-// ═══════════════════════════════════════════════════════════════
-function drawMinimalOverlay(ctx, lm, W, H) {
-  if (!S.exConfig) return;
+    video.srcObject = stream;
+    if (usedRear) video.classList.add('rear'); else video.classList.remove('rear');
 
-  // Determine which landmarks to highlight based on exercise
-  let keyPoints = [];
-  const ex = S.selectedEx || '';
+    video.onloadedmetadata = () => {
+      video.style.display = 'block';
+      if (placeholder) placeholder.style.display = 'none';
+      errBox?.classList.add('hidden');
+      liveBadge?.classList.remove('hidden');
+      btnStart?.classList.add('hidden');
+      btnStop?.classList.remove('hidden');
 
-  if (ex.includes('Curl') || ex.includes('Press') || ex.includes('Raise') || ex.includes('Row')) {
-    keyPoints = [MP.L_SHOULDER, MP.R_SHOULDER, MP.L_ELBOW, MP.R_ELBOW, MP.L_WRIST, MP.R_WRIST];
-  } else if (ex === 'Squat' || ex === 'Lunge' || ex === 'Step-up') {
-    keyPoints = [MP.L_HIP, MP.R_HIP, MP.L_KNEE, MP.R_KNEE, MP.L_ANKLE, MP.R_ANKLE];
-  } else if (ex === 'Plank' || ex.includes('Push')) {
-    keyPoints = [MP.L_SHOULDER, MP.R_SHOULDER, MP.L_ELBOW, MP.R_ELBOW, MP.L_HIP, MP.R_HIP, MP.L_ANKLE, MP.R_ANKLE];
-  } else {
-    keyPoints = [MP.L_SHOULDER, MP.R_SHOULDER, MP.L_HIP, MP.R_HIP, MP.L_KNEE, MP.R_KNEE];
-  }
+      // Start AI tracking simulation
+      Camera.startTracking();
+    };
+  },
 
-  // Draw lines between key connections
-  const connections = getRelevantConnections(ex);
-  ctx.lineWidth = 2.5;
-  ctx.strokeStyle = 'rgba(45,212,191,0.7)';
-  ctx.lineCap = 'round';
+  stop() {
+    if (Camera.stream) {
+      Camera.stream.getTracks().forEach(t => t.stop());
+      Camera.stream = null;
+    }
+    Camera.isRunning = false;
+    clearInterval(Camera.simInterval);
 
-  connections.forEach(([a, b]) => {
-    if (!lm[a] || !lm[b]) return;
-    if (lm[a].visibility < 0.4 || lm[b].visibility < 0.4) return;
+    const video = getEl('workout-video');
+    if (video) { video.srcObject = null; video.style.display = 'none'; }
+    getEl('cam-placeholder') && (getEl('cam-placeholder').style.display = '');
+    getEl('cam-live-badge')?.classList.add('hidden');
+    getEl('btn-start-cam')?.classList.remove('hidden');
+    getEl('btn-stop-cam')?.classList.add('hidden');
+
+    // Reset stats
+    Camera.reps = 0;
+    Camera.updateStats({ angle: null, form: null, accuracy: null });
+  },
+
+  showError(msg) {
+    const errBox = getEl('cam-error');
+    const errText = getEl('cam-error-text');
+    if (errBox)  errBox.classList.remove('hidden');
+    if (errText) errText.textContent = msg;
+  },
+
+  /* ── TRACKING SIMULATION
+     In production this would use TensorFlow.js MoveNet/BlazePose.
+     Here we simulate joint angles and rep counting for demonstration.
+  ── */
+  startTracking() {
+    let tick = 0;
+    let phase = 0; // 0-1 sine for rep simulation
+
+    Camera.simInterval = setInterval(() => {
+      if (!Camera.isRunning) return;
+      tick++;
+      phase += 0.05;
+
+      // Simulate elbow/knee angle oscillation (90°–170°)
+      const rawAngle = 130 + 40 * Math.sin(phase);
+      const angle = Math.round(rawAngle);
+
+      // Rep counting logic (cross threshold)
+      const threshold = 110;
+      if (Camera.repState === 'up' && angle < threshold) {
+        Camera.repState = 'down';
+      } else if (Camera.repState === 'down' && angle > threshold + 15) {
+        Camera.repState = 'up';
+        Camera.reps++;
+        getEl('stat-reps') && (getEl('stat-reps').textContent = Camera.reps);
+      }
+
+      // Form quality (simulated accuracy)
+      const jitter = Math.random() * 10 - 5;
+      const accuracy = Math.round(Math.min(100, Math.max(60, 88 + jitter)));
+      const form = accuracy >= 80 ? 'Correct ✓' : 'Fix Form ✗';
+      const formEl = getEl('stat-form');
+      if (formEl) {
+        formEl.textContent = form;
+        formEl.className = 'stat-val ' + (accuracy >= 80 ? 'form-good' : 'form-bad');
+      }
+
+      Camera.updateStats({ angle, form, accuracy });
+
+      // Draw skeleton on canvas
+      Camera.drawSkeleton(angle, phase);
+    }, 80);
+  },
+
+  updateStats({ angle, form, accuracy }) {
+    if (angle !== null && angle !== undefined) {
+      getEl('stat-angle')    && (getEl('stat-angle').textContent    = angle + '°');
+    }
+    if (accuracy !== null && accuracy !== undefined) {
+      getEl('stat-accuracy') && (getEl('stat-accuracy').textContent = accuracy + '%');
+      const bar = getEl('accuracy-bar');
+      if (bar) bar.style.width = accuracy + '%';
+    }
+    getEl('stat-sets') && (getEl('stat-sets').textContent = `${Camera.setsLogged} / ${Camera.totalSets}`);
+  },
+
+  drawSkeleton(angle, phase) {
+    const canvas = getEl('pose-canvas');
+    const video  = getEl('workout-video');
+    if (!canvas || !video || !Camera.isRunning) return;
+
+    canvas.width  = video.offsetWidth  || 640;
+    canvas.height = video.offsetHeight || 360;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2;
+    const s  = canvas.height / 6; // scale unit
+
+    // Body joints (normalized for a standing figure)
+    const sway = Math.sin(phase) * s * 0.15;
+    const headY = cy - 2.5 * s;
+    const shoulderY = cy - 1.8 * s;
+    const hipY = cy;
+    const kneeY = cy + 1.5 * s;
+    const footY = cy + 2.8 * s;
+
+    // Arm angle from simulated data
+    const rad = ((180 - angle) * Math.PI) / 180;
+    const armLen = s * 0.9;
+    const elbowX = cx - s * 0.6;
+    const elbowY = shoulderY + s * 0.7;
+    const handX  = elbowX - armLen * Math.sin(rad) * 0.6;
+    const handY  = elbowY + armLen * Math.cos(rad);
+
+    const pts = {
+      head:    [cx + sway * 0.3, headY],
+      neck:    [cx + sway * 0.2, shoulderY - s * 0.15],
+      rShoulder: [cx + s * 0.6, shoulderY],
+      lShoulder: [cx - s * 0.6, shoulderY],
+      rElbow:  [cx + s * 0.85, shoulderY + s * 0.7],
+      lElbow:  [elbowX, elbowY],
+      rHand:   [cx + s * 0.9, shoulderY + s * 0.7 + armLen * Math.cos(rad)],
+      lHand:   [handX, handY],
+      rHip:    [cx + s * 0.35, hipY],
+      lHip:    [cx - s * 0.35, hipY],
+      rKnee:   [cx + s * 0.35 + sway, kneeY],
+      lKnee:   [cx - s * 0.35 - sway, kneeY],
+      rFoot:   [cx + s * 0.35 + sway * 1.2, footY],
+      lFoot:   [cx - s * 0.35 - sway * 1.2, footY],
+    };
+
+    const skeletonColor = '#b8ff57';
+    const jointColor    = '#ffffff';
+    const lineW = Math.max(2, canvas.width / 280);
+
+    ctx.strokeStyle = skeletonColor;
+    ctx.lineWidth   = lineW;
+    ctx.lineCap     = 'round';
+    ctx.shadowColor = skeletonColor;
+    ctx.shadowBlur  = 6;
+
+    const connect = (a, b) => {
+      if (!pts[a] || !pts[b]) return;
+      ctx.beginPath();
+      ctx.moveTo(...pts[a]);
+      ctx.lineTo(...pts[b]);
+      ctx.stroke();
+    };
+
+    // Connections
+    ['neck','rShoulder','lShoulder','rElbow','lElbow','rHand','lHand',
+     'rHip','lHip','rKnee','lKnee','rFoot','lFoot'].forEach(() => {});
+
+    connect('head','neck');
+    connect('neck','rShoulder'); connect('neck','lShoulder');
+    connect('rShoulder','rElbow'); connect('rElbow','rHand');
+    connect('lShoulder','lElbow'); connect('lElbow','lHand');
+    connect('rShoulder','rHip'); connect('lShoulder','lHip');
+    connect('rHip','lHip');
+    connect('rHip','rKnee'); connect('rKnee','rFoot');
+    connect('lHip','lKnee'); connect('lKnee','lFoot');
+
+    // Draw head circle
     ctx.beginPath();
-    ctx.moveTo(lm[a].x * W, lm[a].y * H);
-    ctx.lineTo(lm[b].x * W, lm[b].y * H);
+    ctx.arc(...pts.head, s * 0.28, 0, Math.PI * 2);
+    ctx.strokeStyle = skeletonColor;
     ctx.stroke();
-  });
 
-  // Draw key joint dots
-  keyPoints.forEach(idx => {
-    if (!lm[idx] || lm[idx].visibility < 0.4) return;
-    const x = lm[idx].x * W;
-    const y = lm[idx].y * H;
-
-    ctx.beginPath();
-    ctx.arc(x, y, 5, 0, Math.PI * 2);
-    ctx.fillStyle = S.formOk ? 'rgba(45,212,191,0.9)' : 'rgba(255,123,84,0.9)';
-    ctx.fill();
-  });
-}
-
-function getRelevantConnections(ex) {
-  if (ex.includes('Curl') || ex.includes('Press') || ex.includes('Raise')) {
-    return [[MP.L_SHOULDER,MP.L_ELBOW],[MP.L_ELBOW,MP.L_WRIST],[MP.R_SHOULDER,MP.R_ELBOW],[MP.R_ELBOW,MP.R_WRIST],[MP.L_SHOULDER,MP.R_SHOULDER]];
-  } else if (ex === 'Squat' || ex === 'Lunge' || ex.includes('Bridge')) {
-    return [[MP.L_HIP,MP.L_KNEE],[MP.L_KNEE,MP.L_ANKLE],[MP.R_HIP,MP.R_KNEE],[MP.R_KNEE,MP.R_ANKLE],[MP.L_HIP,MP.R_HIP]];
-  } else if (ex.includes('Push') || ex === 'Plank') {
-    return [[MP.L_SHOULDER,MP.L_ELBOW],[MP.L_ELBOW,MP.L_WRIST],[MP.R_SHOULDER,MP.R_ELBOW],[MP.R_ELBOW,MP.R_WRIST],[MP.L_SHOULDER,MP.R_SHOULDER],[MP.L_HIP,MP.R_HIP],[MP.L_SHOULDER,MP.L_HIP],[MP.R_SHOULDER,MP.R_HIP]];
-  } else {
-    return [[MP.L_SHOULDER,MP.R_SHOULDER],[MP.L_SHOULDER,MP.L_HIP],[MP.R_SHOULDER,MP.R_HIP],[MP.L_HIP,MP.R_HIP],[MP.L_HIP,MP.L_KNEE],[MP.R_HIP,MP.R_KNEE]];
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════
-// EXERCISE PROCESSING
-// ═══════════════════════════════════════════════════════════════
-function processExercise() {
-  if (!S.landmarks || !S.exConfig) return;
-
-  const result = S.exConfig.track(S.landmarks);
-
-  S.angle = result.angle;
-  $('abValue').textContent = Math.round(result.angle) + '°';
-  $('scAngle').textContent = Math.round(result.angle) + '°';
-
-  // Check visibility/confidence
-  if (result.visibility !== undefined && result.visibility < 0.4) {
-    setFeedback('Landmark not visible — step back from camera', '👁', false);
-    return;
-  }
-
-  // Form checking
-  handleFormFeedback(result);
-
-  // Rep counting
-  updateRepState(result);
-}
-
-function handleFormFeedback(result) {
-  if (result.formMsg) {
-    S.formOk = false;
-    S.consecutiveFormFails++;
-    setFeedback(result.formMsg, '⚠', true);
-    showFormAlert(result.formMsg);
-
-    // Voice warning every 5 bad frames
-    if (S.consecutiveFormFails > 0 && S.consecutiveFormFails % 5 === 0) {
-      speak('Fix your form');
-    }
-  } else {
-    S.formOk = true;
-    if (S.consecutiveFormFails > 3) {
-      setFeedback('Good — form looks correct!', '✅', false);
-      if (S.consecutiveFormFails > 5) speak('Good form');
-    }
-    S.consecutiveFormFails = 0;
-    hideFormAlert();
-  }
-}
-
-// ─── STATE MACHINE ────────────────────────────────────────────
-function updateRepState(result) {
-  const { angle, atTop, atBottom } = result;
-  const config = S.exConfig;
-
-  if (config.isTimer) {
-    // Timer-based exercise (Plank)
-    setFeedback(result.formMsg || 'Hold steady — great work!', '⏱', false);
-    return;
-  }
-
-  // Noise filter: only change state if movement is significant
-  const DEAD_ZONE = 8;
-
-  if (S.repState === 'up') {
-    // Waiting for "down" position (contraction/lowering)
-    if (atBottom) {
-      S.repState = 'down';
-      setFeedback('Good — now return to start position', '⬆', false);
-    } else if (angle < (S.baselineAngle - DEAD_ZONE * 2)) {
-      // Moving toward contracted position
-      setFeedback(result.feedback || 'Keep going — full range!', '💪', false);
-    }
-  } else if (S.repState === 'down') {
-    // Waiting for "up" — full extension completes a rep
-    if (atTop) {
-      S.repState = 'up';
-      completeRep();
-    }
-  }
-}
-
-function completeRep() {
-  if (S.paused) return;
-
-  S.repCount++;
-  S.totalReps++;
-  $('scReps').textContent = S.repCount;
-
-  // Flash animation
-  const el = $('scReps');
-  el.style.transition = 'transform 0.12s, color 0.12s';
-  el.style.transform = 'scale(1.5)';
-  el.style.color = 'var(--teal)';
-  setTimeout(() => { el.style.transform = 'scale(1)'; el.style.color = ''; }, 150);
-
-  // Feedback
-  if (S.repCount % 5 === 0) speak(`${S.repCount} reps!`);
-  else if (S.repCount === 1) speak('Good rep');
-  else if (S.repCount === S.exConfig.repsTarget) speak('Set complete — great job!');
-
-  setFeedback(`Rep ${S.repCount} — keep going!`, '🔥', false);
-
-  // Check set completion
-  if (S.repCount >= S.exConfig.repsTarget) {
-    setTimeout(() => completeSet(), 300);
-  }
-}
-
-function completeSet() {
-  S.setCount++;
-  const config = S.exConfig;
-  $('scSets').textContent = `${S.setCount}/${config.sets}`;
-  $('setBadge').textContent = `Set ${Math.min(S.setCount + 1, config.sets)}/${config.sets}`;
-
-  speak(`Set ${S.setCount} complete`);
-
-  if (S.setCount >= config.sets) {
-    finishExercise();
-  } else {
-    startRestTimer(config.restSec, S.setCount + 1);
-  }
-}
-
-function finishExercise() {
-  $('trackingView').classList.add('hidden');
-  $('workoutComplete').classList.remove('hidden');
-
-  const secs = Math.round((Date.now() - (S.sessionStart || Date.now())) / 1000);
-  const mins = Math.floor(secs / 60);
-  const s = secs % 60;
-
-  $('wcTotalReps').textContent = S.totalReps;
-  $('wcSets').textContent = S.setCount;
-  $('wcDuration').textContent = `${mins}:${String(s).padStart(2, '0')}`;
-
-  saveWorkoutSession();
-  speak('Excellent work! Exercise complete!');
-}
-
-// ═══════════════════════════════════════════════════════════════
-// REST TIMER
-// ═══════════════════════════════════════════════════════════════
-function startRestTimer(seconds, nextSet) {
-  S.repCount = 0;
-  S.repState = 'up';
-  $('scReps').textContent = '0';
-
-  $('trackingView').classList.add('hidden');
-  $('restTimerBox').classList.remove('hidden');
-  $('rtbNext').textContent = `Next: Set ${nextSet}/${S.exConfig.sets} · ${S.selectedEx}`;
-
-  let remaining = seconds;
-  $('rtbCountdown').textContent = remaining;
-
-  speak(`Rest for ${seconds} seconds`);
-
-  clearInterval(S.restInterval);
-  S.restInterval = setInterval(() => {
-    remaining--;
-    $('rtbCountdown').textContent = remaining;
-
-    if (remaining === 10) speak('10 seconds');
-    if (remaining === 3) speak('3');
-    if (remaining === 2) speak('2');
-    if (remaining === 1) speak('1');
-
-    if (remaining <= 0) {
-      clearInterval(S.restInterval);
-      resumeAfterRest();
-    }
-  }, 1000);
-}
-
-function skipRest() {
-  clearInterval(S.restInterval);
-  resumeAfterRest();
-}
-
-function resumeAfterRest() {
-  $('restTimerBox').classList.add('hidden');
-  $('trackingView').classList.remove('hidden');
-  $('setBadge').textContent = `Set ${S.setCount + 1}/${S.exConfig.sets}`;
-  speak('Go!');
-  setFeedback('Start your next set!', '💪', false);
-}
-
-// ═══════════════════════════════════════════════════════════════
-// FEEDBACK & VOICE
-// ═══════════════════════════════════════════════════════════════
-function setFeedback(msg, icon = '💡', isWarn = false) {
-  if (msg === S.lastFeedbackMsg) return;
-  S.lastFeedbackMsg = msg;
-  $('fbText').textContent = msg;
-  $('fbIcon').textContent = icon;
-  const bar = $('feedbackBar');
-  bar.className = 'feedback-bar' + (isWarn ? ' warn' : (icon === '✅' || icon === '🔥' ? ' good' : ''));
-}
-
-function showFormAlert(msg) {
-  const el = $('formAlert');
-  el.textContent = msg;
-  el.classList.add('visible');
-  clearTimeout(el._timer);
-  el._timer = setTimeout(() => el.classList.remove('visible'), 3000);
-}
-
-function hideFormAlert() {
-  $('formAlert').classList.remove('visible');
-}
-
-function speak(text) {
-  if (!S.speechSynth) return;
-  const now = Date.now();
-  if (now - S.lastSpoken < 1500) return; // throttle
-  S.lastSpoken = now;
-
-  S.speechSynth.cancel();
-  const utt = new SpeechSynthesisUtterance(text);
-  utt.rate = 1.0;
-  utt.pitch = 1.0;
-  utt.volume = 0.9;
-  S.speechSynth.speak(utt);
-}
-
-// ═══════════════════════════════════════════════════════════════
-// ANGLE CALCULATION
-// ═══════════════════════════════════════════════════════════════
-function calcAngle(A, B, C) {
-  // A = first point, B = vertex, C = third point
-  const radians = Math.atan2(C.y - B.y, C.x - B.x) - Math.atan2(A.y - B.y, A.x - B.x);
-  let angle = Math.abs(radians * 180 / Math.PI);
-  if (angle > 180) angle = 360 - angle;
-  return angle;
-}
-
-function avgPoint(a, b) {
-  return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, visibility: Math.min(a.visibility || 1, b.visibility || 1) };
-}
-
-function getVis(lm, ...indices) {
-  return Math.min(...indices.map(i => lm[i]?.visibility || 0));
-}
-
-// ═══════════════════════════════════════════════════════════════
-// EXERCISE TRACKING FUNCTIONS
-// ═══════════════════════════════════════════════════════════════
-
-// ── BICEP CURL ────────────────────────────────────────────────
-function trackBicepCurl(lm) {
-  const vis = getVis(lm, MP.L_SHOULDER, MP.L_ELBOW, MP.L_WRIST,
-                        MP.R_SHOULDER, MP.R_ELBOW, MP.R_WRIST);
-
-  // Use the arm with better visibility
-  let shoulder, elbow, wrist;
-  const lVis = getVis(lm, MP.L_SHOULDER, MP.L_ELBOW, MP.L_WRIST);
-  const rVis = getVis(lm, MP.R_SHOULDER, MP.R_ELBOW, MP.R_WRIST);
-
-  if (lVis >= rVis) {
-    shoulder = lm[MP.L_SHOULDER];
-    elbow = lm[MP.L_ELBOW];
-    wrist = lm[MP.L_WRIST];
-  } else {
-    shoulder = lm[MP.R_SHOULDER];
-    elbow = lm[MP.R_ELBOW];
-    wrist = lm[MP.R_WRIST];
-  }
-
-  const angle = calcAngle(shoulder, elbow, wrist);
-
-  // Form checks
-  let formMsg = '';
-
-  // Check if elbow is drifting (elbow x should stay near shoulder x)
-  const elbowDrift = Math.abs(elbow.x - shoulder.x);
-  if (elbowDrift > 0.15) {
-    formMsg = 'Keep elbow fixed to your side';
-  }
-
-  // Check body sway (hip should stay relatively still)
-  const hip = lVis >= rVis ? lm[MP.L_HIP] : lm[MP.R_HIP];
-  if (hip && Math.abs(hip.x - shoulder.x) > 0.25) {
-    formMsg = "Don't swing your body";
-  }
-
-  return {
-    angle,
-    atBottom: angle < 50,    // fully contracted
-    atTop: angle > 155,      // fully extended
-    feedback: angle > 90 ? 'Curl higher — full contraction' : 'Control the lowering',
-    formMsg,
-    visibility: vis,
-  };
-}
-
-// ── SQUAT ─────────────────────────────────────────────────────
-function trackSquat(lm) {
-  const vis = getVis(lm, MP.L_HIP, MP.L_KNEE, MP.L_ANKLE,
-                        MP.R_HIP, MP.R_KNEE, MP.R_ANKLE);
-
-  const hip = avgPoint(lm[MP.L_HIP], lm[MP.R_HIP]);
-  const knee = avgPoint(lm[MP.L_KNEE], lm[MP.R_KNEE]);
-  const ankle = avgPoint(lm[MP.L_ANKLE], lm[MP.R_ANKLE]);
-
-  const angle = calcAngle(hip, knee, ankle);
-
-  let formMsg = '';
-
-  // Check knee tracking (knees should stay over toes)
-  const lKneeX = lm[MP.L_KNEE]?.x || 0;
-  const lAnkleX = lm[MP.L_ANKLE]?.x || 0;
-  const rKneeX = lm[MP.R_KNEE]?.x || 0;
-  const rAnkleX = lm[MP.R_ANKLE]?.x || 0;
-
-  if (angle < 130) {
-    if (Math.abs(lKneeX - lAnkleX) > 0.08 || Math.abs(rKneeX - rAnkleX) > 0.08) {
-      formMsg = 'Align knees over toes';
-    }
-  }
-
-  // Back straightness: check shoulder-hip vertical alignment
-  const shoulder = avgPoint(lm[MP.L_SHOULDER], lm[MP.R_SHOULDER]);
-  if (angle < 120) {
-    const lean = Math.abs(shoulder.x - hip.x);
-    if (lean > 0.12) {
-      formMsg = 'Keep your back straight';
-    }
-  }
-
-  return {
-    angle,
-    atBottom: angle < 100,   // deep squat
-    atTop: angle > 165,      // standing
-    feedback: angle > 130 ? 'Lower down — thighs parallel to floor' : 'Push through heels to stand',
-    formMsg,
-    visibility: vis,
-  };
-}
-
-// ── PUSH-UP ───────────────────────────────────────────────────
-function trackPushup(lm) {
-  const vis = getVis(lm, MP.L_SHOULDER, MP.L_ELBOW, MP.L_WRIST,
-                        MP.R_SHOULDER, MP.R_ELBOW, MP.R_WRIST);
-
-  const shoulder = avgPoint(lm[MP.L_SHOULDER], lm[MP.R_SHOULDER]);
-  const elbow = avgPoint(lm[MP.L_ELBOW], lm[MP.R_ELBOW]);
-  const wrist = avgPoint(lm[MP.L_WRIST], lm[MP.R_WRIST]);
-
-  const angle = calcAngle(shoulder, elbow, wrist);
-
-  let formMsg = '';
-
-  // Hip sag/pike check
-  const hip = avgPoint(lm[MP.L_HIP], lm[MP.R_HIP]);
-  const ankle = avgPoint(lm[MP.L_ANKLE] || lm[MP.L_FOOT], lm[MP.R_ANKLE] || lm[MP.R_FOOT]);
-
-  if (hip && shoulder && ankle) {
-    const hipSag = hip.y - (shoulder.y + ankle.y) / 2;
-    if (hipSag > 0.08) formMsg = 'Keep hips level — no sagging';
-    else if (hipSag < -0.08) formMsg = 'Lower hips — body straight';
-  }
-
-  return {
-    angle,
-    atBottom: angle < 80,    // chest near floor
-    atTop: angle > 155,      // arms extended
-    feedback: angle > 110 ? 'Lower chest to floor' : 'Push all the way up',
-    formMsg,
-    visibility: vis,
-  };
-}
-
-// ── LUNGE ─────────────────────────────────────────────────────
-function trackLunge(lm) {
-  // Use front leg (lower knee)
-  const lKnee = lm[MP.L_KNEE];
-  const rKnee = lm[MP.R_KNEE];
-  const useLLeft = lKnee && rKnee && lKnee.y > rKnee.y;
-
-  const hip = useLLeft ? lm[MP.L_HIP] : lm[MP.R_HIP];
-  const knee = useLLeft ? lKnee : rKnee;
-  const ankle = useLLeft ? lm[MP.L_ANKLE] : lm[MP.R_ANKLE];
-  const vis = getVis(lm, MP.L_HIP, MP.L_KNEE, MP.L_ANKLE, MP.R_HIP, MP.R_KNEE, MP.R_ANKLE);
-
-  const angle = calcAngle(hip, knee, ankle);
-
-  let formMsg = '';
-  // Knee should not go past ankle
-  if (angle < 100 && knee && ankle) {
-    if (knee.x - ankle.x > 0.05) formMsg = 'Knee too far forward over ankle';
-  }
-
-  return {
-    angle,
-    atBottom: angle < 100,
-    atTop: angle > 160,
-    feedback: angle > 130 ? 'Step deeper — lower back knee' : 'Rise back to start position',
-    formMsg,
-    visibility: vis,
-  };
-}
-
-// ── SHOULDER PRESS ────────────────────────────────────────────
-function trackShoulderPress(lm) {
-  const vis = getVis(lm, MP.L_SHOULDER, MP.L_ELBOW, MP.L_WRIST,
-                        MP.R_SHOULDER, MP.R_ELBOW, MP.R_WRIST);
-
-  const shoulder = avgPoint(lm[MP.L_SHOULDER], lm[MP.R_SHOULDER]);
-  const elbow = avgPoint(lm[MP.L_ELBOW], lm[MP.R_ELBOW]);
-  const wrist = avgPoint(lm[MP.L_WRIST], lm[MP.R_WRIST]);
-
-  const angle = calcAngle(shoulder, elbow, wrist);
-
-  let formMsg = '';
-  // Wrist should be above elbow when pressing up
-  if (angle > 150 && wrist.y > elbow.y) formMsg = 'Extend arms fully overhead';
-  // Check arching back
-  const hip = avgPoint(lm[MP.L_HIP], lm[MP.R_HIP]);
-  if (hip && shoulder) {
-    if (shoulder.x - hip.x > 0.1) formMsg = 'Keep core tight — no arching';
-  }
-
-  return {
-    angle,
-    atBottom: angle < 90,    // elbows at shoulder level
-    atTop: angle > 160,      // arms overhead
-    feedback: angle < 120 ? 'Press arms all the way up' : 'Lower to shoulder height',
-    formMsg,
-    visibility: vis,
-  };
-}
-
-// ── HIGH KNEES ────────────────────────────────────────────────
-function trackHighKnees(lm) {
-  const vis = getVis(lm, MP.L_HIP, MP.L_KNEE, MP.R_HIP, MP.R_KNEE);
-
-  const lHip = lm[MP.L_HIP];
-  const rHip = lm[MP.R_HIP];
-  const lKnee = lm[MP.L_KNEE];
-  const rKnee = lm[MP.R_KNEE];
-
-  // Height of knee relative to hip (negative y = higher in image coords)
-  const lKneeHeight = lHip.y - lKnee.y;
-  const rKneeHeight = rHip.y - rKnee.y;
-  const maxHeight = Math.max(lKneeHeight, rKneeHeight);
-
-  // Convert to angle-like metric (0-180)
-  const angle = Math.max(0, Math.min(180, maxHeight * 400 + 90));
-
-  return {
-    angle,
-    atBottom: maxHeight < 0.01,  // knee is low
-    atTop: maxHeight > 0.12,     // knee is high
-    feedback: maxHeight < 0.08 ? 'Lift knees higher — to waist level' : 'Good height!',
-    formMsg: '',
-    visibility: vis,
-  };
-}
-
-// ── GLUTE BRIDGE ──────────────────────────────────────────────
-function trackGluteBridge(lm) {
-  const vis = getVis(lm, MP.L_SHOULDER, MP.L_HIP, MP.L_KNEE);
-
-  const shoulder = avgPoint(lm[MP.L_SHOULDER], lm[MP.R_SHOULDER]);
-  const hip = avgPoint(lm[MP.L_HIP], lm[MP.R_HIP]);
-  const knee = avgPoint(lm[MP.L_KNEE], lm[MP.R_KNEE]);
-
-  const angle = calcAngle(shoulder, hip, knee);
-
-  let formMsg = '';
-  if (angle > 150) formMsg = 'Squeeze glutes at the top';
-
-  return {
-    angle,
-    atBottom: angle < 130,
-    atTop: angle > 170,
-    feedback: angle < 150 ? 'Push hips up higher' : 'Hold at the top, then lower',
-    formMsg,
-    visibility: vis,
-  };
-}
-
-// ── PLANK ─────────────────────────────────────────────────────
-function trackPlank(lm) {
-  const vis = getVis(lm, MP.L_SHOULDER, MP.L_HIP, MP.L_ANKLE);
-
-  const shoulder = avgPoint(lm[MP.L_SHOULDER], lm[MP.R_SHOULDER]);
-  const hip = avgPoint(lm[MP.L_HIP], lm[MP.R_HIP]);
-  const ankle = avgPoint(lm[MP.L_ANKLE] || lm[MP.L_HEEL], lm[MP.R_ANKLE] || lm[MP.R_HEEL]);
-
-  const hipSag = hip.y - (shoulder.y + ankle.y) / 2;
-  const bodyAngle = calcAngle(shoulder, hip, ankle);
-
-  let formMsg = '';
-  if (hipSag > 0.05) formMsg = 'Lift hips — keep body straight';
-  else if (hipSag < -0.05) formMsg = 'Lower hips — avoid piking';
-
-  return {
-    angle: bodyAngle,
-    atBottom: false,
-    atTop: false,
-    feedback: Math.abs(hipSag) < 0.04 ? 'Perfect plank position! Breathe.' : formMsg,
-    formMsg,
-    visibility: vis,
-  };
-}
-
-// ── JUMPING JACKS ─────────────────────────────────────────────
-function trackJumpingJacks(lm) {
-  const vis = getVis(lm, MP.L_SHOULDER, MP.R_SHOULDER, MP.L_WRIST, MP.R_WRIST);
-
-  const lShoulder = lm[MP.L_SHOULDER];
-  const rShoulder = lm[MP.R_SHOULDER];
-  const lWrist = lm[MP.L_WRIST];
-  const rWrist = lm[MP.R_WRIST];
-
-  // Arm spread: difference in wrist x positions
-  const armSpread = Math.abs((lWrist?.x || 0) - (rWrist?.x || 0));
-  const angle = Math.min(180, armSpread * 250);
-
-  return {
-    angle,
-    atBottom: armSpread < 0.15,
-    atTop: armSpread > 0.5,
-    feedback: armSpread < 0.3 ? 'Spread arms and legs wide' : 'Back to center',
-    formMsg: '',
-    visibility: vis,
-  };
-}
-
-// ── CALF RAISE ────────────────────────────────────────────────
-function trackCalfRaise(lm) {
-  const vis = getVis(lm, MP.L_ANKLE, MP.L_HEEL, MP.R_ANKLE, MP.R_HEEL);
-
-  // Heel lifting = heel y decreasing (moving up in image)
-  const lHeel = lm[MP.L_HEEL] || lm[MP.L_FOOT];
-  const rHeel = lm[MP.R_HEEL] || lm[MP.R_FOOT];
-  const lAnkle = lm[MP.L_ANKLE];
-  const rAnkle = lm[MP.R_ANKLE];
-
-  const lLift = lHeel && lAnkle ? lAnkle.y - lHeel.y : 0;
-  const rLift = rHeel && rAnkle ? rAnkle.y - rHeel.y : 0;
-  const lift = (lLift + rLift) / 2;
-
-  const angle = Math.max(0, Math.min(180, 90 + lift * 600));
-
-  return {
-    angle,
-    atBottom: lift < 0.01,
-    atTop: lift > 0.04,
-    feedback: lift < 0.02 ? 'Rise higher on toes' : 'Lower heels back down',
-    formMsg: '',
-    visibility: vis,
-  };
-}
-
-// ═══════════════════════════════════════════════════════════════
-// PROGRESS STORAGE
-// ═══════════════════════════════════════════════════════════════
-function saveWorkoutSession() {
-  const session = {
-    date: new Date().toISOString(),
-    exercise: S.selectedEx,
-    reps: S.totalReps,
-    sets: S.setCount,
-    duration: Math.round((Date.now() - (S.sessionStart || Date.now())) / 1000),
-  };
-
-  let history = [];
-  try {
-    history = JSON.parse(localStorage.getItem('fh_history') || '[]');
-  } catch { history = []; }
-
-  history.unshift(session);
-  if (history.length > 100) history = history.slice(0, 100); // max 100 entries
-
-  localStorage.setItem('fh_history', JSON.stringify(history));
-  renderHistory();
-}
-
-function loadHistory() {
-  try {
-    return JSON.parse(localStorage.getItem('fh_history') || '[]');
-  } catch { return []; }
-}
-
-function renderHistory() {
-  const history = loadHistory();
-  const list = $('historyList');
-  if (!list) return;
-
-  if (history.length === 0) {
-    list.innerHTML = '<div class="history-empty">No workouts yet. Start your first session!</div>';
-    $('streakNum').textContent = '0';
-    return;
-  }
-
-  list.innerHTML = '';
-  history.slice(0, 20).forEach(s => {
-    const d = new Date(s.date);
-    const label = d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
-    const mins = Math.floor((s.duration || 0) / 60);
-    const secs = (s.duration || 0) % 60;
-
-    const item = document.createElement('div');
-    item.className = 'history-item';
-    item.innerHTML = `
-      <div class="hi-date">${label}</div>
-      <div class="hi-info">
-        <div class="hi-name">${s.exercise}</div>
-        <div class="hi-meta">${s.reps} reps · ${s.sets} sets · ${mins}:${String(secs).padStart(2,'0')}</div>
-      </div>
-      <span class="hi-badge">✓ Done</span>`;
-    list.appendChild(item);
-  });
-
-  // Streak calc
-  $('streakNum').textContent = calculateStreak(history);
-}
-
-function calculateStreak(history) {
-  if (!history.length) return 0;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const uniqueDays = [...new Set(history.map(s => {
-    const d = new Date(s.date);
-    d.setHours(0, 0, 0, 0);
-    return d.getTime();
-  }))].sort((a, b) => b - a);
-
-  let streak = 0;
-  let expected = today.getTime();
-
-  for (const day of uniqueDays) {
-    if (day === expected) {
-      streak++;
-      expected -= 86400000;
-    } else if (day === expected + 86400000) {
-      // today was yesterday's
-      expected = day - 86400000;
-      streak++;
-    } else {
-      break;
-    }
-  }
-  return streak;
-}
-
-function bindHistory() {
-  const clearBtn = $('btnClearHistory');
-  if (clearBtn) {
-    clearBtn.addEventListener('click', () => {
-      if (confirm('Clear all workout history?')) {
-        localStorage.removeItem('fh_history');
-        renderHistory();
-        toast('History cleared');
-      }
+    // Joints
+    ctx.shadowBlur = 10;
+    ctx.fillStyle = jointColor;
+    Object.values(pts).forEach(([x, y]) => {
+      if (x === pts.head[0] && y === pts.head[1]) return;
+      ctx.beginPath();
+      ctx.arc(x, y, lineW * 2.5, 0, Math.PI * 2);
+      ctx.fill();
     });
-  }
-}
 
-// ═══════════════════════════════════════════════════════════════
-// PROFILE PAGE
-// ═══════════════════════════════════════════════════════════════
-function bindProfile() {
-  let editGoal = S.profile?.goal || null;
+    // Angle annotation
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = skeletonColor;
+    ctx.font = `bold ${Math.max(12, canvas.width / 50)}px DM Sans, sans-serif`;
+    ctx.fillText(`${angle}°`, pts.lElbow[0] + 10, pts.lElbow[1] - 10);
+  },
 
-  // Populate fields
-  if (S.profile) {
-    const p = S.profile;
-    $('pe-name').value = p.name || '';
-    $('pe-age').value = p.age || '';
-    $('pe-weight').value = p.weight || '';
-    $('pe-height').value = p.height || '';
+  logSet() {
+    if (!Camera.isRunning) { alert('Please start the camera first.'); return; }
+    if (!state.selectedExercise) { alert('Please select an exercise.'); return; }
 
-    // Profile card
-    $('pcbAvatar').textContent = (p.name || 'U').charAt(0).toUpperCase();
-    $('pcbName').textContent = p.name || 'User';
-    $('pcbGoal').textContent = p.goalLabel || p.goal || '—';
-    $('pcbAge').textContent = p.age ? `${p.age}y` : '—';
-    $('pcbWeight').textContent = p.weight ? `${p.weight}kg` : '—';
-    $('pcbHeight').textContent = p.height ? `${p.height}cm` : '—';
-  }
+    Camera.setsLogged++;
+    Camera.totalSets = 3;
 
-  $$('#peGoalGrid .goal-opt').forEach(btn => {
-    btn.classList.toggle('selected', btn.dataset.goal === editGoal);
-    btn.addEventListener('click', () => {
-      $$('#peGoalGrid .goal-opt').forEach(b => b.classList.remove('selected'));
-      btn.classList.add('selected');
-      editGoal = btn.dataset.goal;
-    });
-  });
-
-  $('btnSaveProfile').addEventListener('click', () => {
-    const name = $('pe-name').value.trim();
-    if (!name) { toast('Name required'); return; }
-
-    const sel = $$('#peGoalGrid .goal-opt.selected')[0];
-    S.profile = {
-      ...S.profile,
-      name,
-      age: $('pe-age').value,
-      weight: $('pe-weight').value,
-      height: $('pe-height').value,
-      goal: editGoal,
-      goalLabel: sel?.textContent || editGoal,
+    // Save to history
+    const entry = {
+      date: new Date().toLocaleDateString('en-GB', { day:'2-digit', month:'short' }),
+      day: (WEEK.find(d => d.key === (state.selectedDay || today())) || {}).focus || 'Workout',
+      exercise: state.selectedExercise,
+      reps: Camera.reps,
+      sets: Camera.setsLogged,
+      calories: Math.round(Camera.reps * 0.5 + Camera.setsLogged * 8),
+      duration: Math.round(Camera.setsLogged * 2.5),
     };
+    if (!state.isGuest) {
+      state.history.push(entry);
+      saveLocal('history', state.history);
+    }
 
-    localStorage.setItem('fh_profile', JSON.stringify(S.profile));
+    // Streak update
+    state.streak = (state.streak || 0) + (Camera.setsLogged === 1 ? 1 : 0);
+    if (!state.isGuest) saveLocal('streak', state.streak);
 
-    // Update display
-    $('pcbAvatar').textContent = name.charAt(0).toUpperCase();
-    $('pcbName').textContent = name;
-    $('pcbGoal').textContent = S.profile.goalLabel || S.profile.goal;
-    $('pcbAge').textContent = S.profile.age ? `${S.profile.age}y` : '—';
-    $('pcbWeight').textContent = S.profile.weight ? `${S.profile.weight}kg` : '—';
-    $('pcbHeight').textContent = S.profile.height ? `${S.profile.height}cm` : '—';
+    Camera.reps = 0;
+    getEl('stat-reps') && (getEl('stat-reps').textContent = '0');
+    getEl('stat-sets') && (getEl('stat-sets').textContent = `${Camera.setsLogged} / ${Camera.totalSets}`);
 
-    updateTopbar();
+    // Visual feedback
+    const btn = getEl('btn-log-set');
+    if (btn) {
+      const orig = btn.textContent;
+      btn.textContent = '✓ Set Logged!';
+      btn.style.background = 'var(--success)';
+      setTimeout(() => {
+        btn.textContent = orig;
+        btn.style.background = '';
+      }, 1200);
+    }
+  },
+};
 
-    const msg = $('savePEMsg');
-    msg.textContent = '✓ Profile updated';
-    setTimeout(() => { msg.textContent = ''; }, 2500);
-    toast('Profile updated!');
-  });
-}
-
-// ═══════════════════════════════════════════════════════════════
-// TOAST & UTILS
-// ═══════════════════════════════════════════════════════════════
-let toastTimer;
-function toast(msg) {
-  clearTimeout(toastTimer);
-  const el = $('toast');
-  el.textContent = msg;
-  el.classList.add('show');
-  toastTimer = setTimeout(() => el.classList.remove('show'), 2600);
-}
-
-function delay(ms) {
-  return new Promise(r => setTimeout(r, ms));
-}
+/* ════════════════════════════════════════
+   INIT
+════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', () => App.init());
